@@ -130,100 +130,107 @@ In here we see that first line corrosponds to the sample information followed by
    
 ## 2. Quality Control
 
-### Quality control of Illumina reads using Sickle
+### Quality control of Illumina reads using Trimmommatic
 Step one is to perform quality control on the reads, and we will be using Sickle for the Illumina reads. To start with we have paired-end reads.  
 
 ```bash
-module load sickle/1.33
+module load Trimmomatic/0.39
 
-sickle pe -f ../Raw_Reads/U13/U13_R1.fastq \
-        -r ../Raw_Reads/U13/U13_R2.fastq \
-        -t sanger \
-        -o trim_U13_R1.fastq \
-        -p trim_U13_R2.fastq \
-        -s singles_U13.fastq \
-        -q 30 -l 45
+java -jar $Trimmomatic PE -threads 4 \
+        ../Raw_Reads/U13/U13_R1.fastq \
+        ../Raw_Reads/U13/U13_R2.fastq \
+        trim_U13_R1.fastq singles_trim_U13_R1.fastq \
+        trim_U13_R2.fastq singles_trim_U13_R2.fastq \
+        ILLUMINACLIP:/isg/shared/apps/Trimmomatic/0.36/adapters/TruSeq3-PE-2.fa:2:30:10 \
+        SLIDINGWINDOW:4:25 MINLEN:45
 
-sickle pe -f ../Raw_Reads/U32/U32_R1.fastq \
-        -r ../Raw_Reads/U32/U32_R2.fastq \
-        -t sanger \
-        -o trim_U32_R1.fastq \
-        -p trim_U32_R2.fastq \
-        -s singles_U32.fastq \
-        -q 30 -l 45
+java -jar $Trimmomatic PE -threads 4 \
+        ../Raw_Reads/U32/U32_R1.fastq \
+        ../Raw_Reads/U32/U32_R2.fastq \
+        trim_U32_R1.fastq singles_trim_U32_R1.fastq \
+        trim_U32_R2.fastq singles_trim_U32_R2.fastq \
+        ILLUMINACLIP:/isg/shared/apps/Trimmomatic/0.36/adapters/TruSeq3-PE-2.fa:2:30:10 \
+        SLIDINGWINDOW:4:25 MINLEN:45
 
-sickle pe -f ../Raw_Reads/K32/K32_R1.fastq \
-        -r ../Raw_Reads/K32/K32_R2.fastq \
-        -t sanger \
-        -o trim_K32_R1.fastq \
-        -p trim_K32_R2.fastq \
-        -s singles_K32.fastq \
-        -q 30 -l 45
+java -jar $Trimmomatic PE -threads 4 \
+        ../Raw_Reads/K32/K32_R1.fastq \
+        ../Raw_Reads/K32/K32_R2.fastq \
+        trim_K32_R1.fastq singles_trim_K32_R1.fastq \
+        trim_K32_R2.fastq singles_trim_K32_R2.fastq \
+        ILLUMINACLIP:/isg/shared/apps/Trimmomatic/0.36/adapters/TruSeq3-PE-2.fa:2:30:10 \
+        SLIDINGWINDOW:4:25 MINLEN:45
 
-sickle pe -f ../Raw_Reads/K23/K23_R1.fastq \
-        -r ../Raw_Reads/K23/K23_R2.fastq \
-        -t sanger \
-        -o trim_K23_R1.fastq \
-        -p trim_K23_R2.fastq \
-        -s singles_K23.fastq \
-        -q 30 -l 45
+
+java -jar $Trimmomatic PE -threads 4 \
+        ../Raw_Reads/K23/K23_R1.fastq \
+        ../Raw_Reads/K23/K23_R2.fastq \
+        trim_K23_R1.fastq singles_trim_K23_R1.fastq \
+        trim_K23_R2.fastq singles_trim_K23_R2.fastq \
+        ILLUMINACLIP:/isg/shared/apps/Trimmomatic/0.36/adapters/TruSeq3-PE-2.fa:2:30:10 \
+        SLIDINGWINDOW:4:25 MINLEN:45
+
 ```
    
-The usage information on the sickle program:  
+The usage information on the Trimmomatic program:  
+
 ```
-Usage: sickle pe [options] -f <paired-end forward fastq file> 
-	-r <paired-end reverse fastq file> 
-	-t <quality type> 
-	-o <trimmed PE forward file> 
-	-p <trimmed PE reverse file> 
-	-s <trimmed singles file>    
+java -jar trimmomatic-0.30.jar [-threads <threads>]  
+	PE Sample_R1.fastq Sample_R2.fastq 
+	paired_Sample_R1.fastq Single_Sample_R1.fastq 
+	paired_Sample_R2.fastq Single_Sample_R2.fastq
+	ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 LEADING:3
+	TRAILING:3 SLIDINGWINDOW:4:25 MINLEN:45
 
-Options:
--f, --pe-file1, Input paired-end forward fastq file
--r, --pe-file2, Input paired-end reverse fastq file
--o, --output-pe1, Output trimmed forward fastq file
--p, --output-pe2, Output trimmed reverse fastq file
--s                Singles files
+-threads : Threads for parallel processing
+PE : Paired end samples
+Sample_R1.fastq Sample_R2.fastq : Input sample files (R1 and R2)
+paired_Sample_R1.fastq paired_Sample_R2.fastq : Output files of read where both pairs survived.
+Single_Sample_R1.fastq Single_Sample_R2.fastq : Output files of read where only one read of the pair survived.
 
-Global options:
--t, --qual-type, Type of quality values
-                solexa (CASAVA < 1.3)
-                illumina (CASAVA 1.3 to 1.7)
-                sanger (which is CASAVA >= 1.8)
--s, --output-single, Output trimmed singles fastq file
--l, --length-threshold, Threshold to keep a read based on length after trimming. Default 20
--q, --qual-threshold, Threshold for trimming based on average quality in a window. Default 20
+ILLUMINACLIP: Cut adapter and other illumina-specific sequences from the read.
+SLIDINGWINDOW: Performs a sliding window trimming approach. It starts scanning at the 5‟ end and clips the read once the average quality within the window falls below a threshold.
+MAXINFO: An adaptive quality trimmer which balances read length and error rate to
+maximise the value of each read
+LEADING: Cut bases off the start of a read, if below a threshold quality
+TRAILING: Cut bases off the end of a read, if below a threshold quality
+CROP: Cut the read to a specified length by removing bases from the end
+HEADCROP: Cut the specified number of bases from the start of the read
+MINLEN: Drop the read if it is below a specified length
 ```  
-   
-The quality may be any score from 0 to 40. The default of 20 is much too low for a robust analysis. We want to select only reads with a quality of 30 or better. Additionally, the desired length of each read is 45bp. Lastly, we must know the scoring type. While the quality type is not listed on the SRA pages, most SRA reads use the "sanger" quality type. Unless explicitly stated, try running sickle using the sanger qualities. If an error is returned, try illumina. If another error is returned, lastly try solexa.  
 
-The full slurm script which is called [sickle.sh](/Quality_Control/sickle.sh) is stored in the Quality_Control folder.  
+The `SLIDINGWINDOW` will calculate average phred score over defined window (above 4 bps) and when the average falls below the threshold (set to 25 here) the reads are trimmed. Another parameter is `MINLEN` which sets the minimum length of the read that is required to be accepted following the quality processing. `ILLUMINACLIP` is set to the path of fasta file containing adapter sequences in fasta format. Additional sequences can be added to the file if they have to be trimmed from the reads.
 
-At the end of the run, each run will produce **3** files, a *trimmed forward read file*, *trimmed reverse read file* and a *singles file*. Singles file will contain the reads whose pair failed to pass the thresholds set in the sickle step. The following files will be produced at the end of the run:  
+At the end of the run, each run will produce **4** files, a *trimmed forward read file*, *trimmed reverse read file* and two *singles file*. Singles file will contain the reads whose pair failed to pass the thresholds set in the trimmommatic step. The following files will be produced at the end of the run:  
 ```
 Quality_Control/
-├── trim_U13_R1.fastq
-├── trim_U13_R2.fastq
-├── singles_U13.fastq
-├── trim_U32_R1.fastq
-├── trim_U32_R2.fastq
-├── singles_U32.fastq
+├── singles_trim_K23_R1.fastq
+├── singles_trim_K23_R2.fastq
+├── singles_trim_K32_R1.fastq
+├── singles_trim_K32_R2.fastq
+├── singles_trim_U13_R1.fastq
+├── singles_trim_U13_R2.fastq
+├── singles_trim_U32_R1.fastq
+├── singles_trim_U32_R2.fastq
 ├── trim_K23_R1.fastq
 ├── trim_K23_R2.fastq
-├── singles_K23.fastq
 ├── trim_K32_R1.fastq
 ├── trim_K32_R2.fastq
-└── singles_K32.fastq
+├── trim_U13_R1.fastq
+├── trim_U13_R2.fastq
+├── trim_U32_R1.fastq
+└── trim_U32_R2.fastq
+
+
 ```
   
-The summary of the reads will be in the `*.out` file, which will give how many reads is kept and how many have been discarded in each run.  
+The summary of the reads will be in the `*.err` file, which will give how many reads is kept and how many have been discarded in each run.  
   
-| Sample | Input records | Paired records kept | single records kept | paired records discarded | single records discarded | Kept (%) |   
+| Sample | Input records | Paired records kept | Forward surviving | Reverse surviving | Records dropped | Kept (%) |   
 | --- | --- | --- | --- | --- | --- | --- |   
-| U13 | 36516384 | 36516384 | 4048114 | 4004868 | 4048114 | 75.1 |   
-| U32 | 46566276 | 35981128 | 3388161 | 3808826 | 3388161 | 77.3 |   
-| K32 | 41656220 | 30657748 | 3646736 | 3705000 | 3646736 | 73.6 |     
-| K23 | 45017196 | 33692758 | 3669578 | 3985282 | 3669578 | 74.2 |   
+| U13 | 24308740 | 19450852 | 2767617 | 843463 | 1246808 | 80.02 |   
+| U32 | 23283138 | 19166285 | 2085260 | 858531 | 1173062 | 82.32 |   
+| K32 | 20828110 | 16468780 | 2448484 | 759367 | 1151479 | 79.07 |     
+| K23 | 22508598 | 18004494 | 2511606 | 751067 | 1241431 | 79.99 |   
    
    
    

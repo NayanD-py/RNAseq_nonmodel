@@ -11,7 +11,7 @@
 #SBATCH -o %x_%j.out
 #SBATCH -e %x_%j.err
 
-fpath="/UCHC/PublicShare/RNASeq_Workshop/Eastern_larch/Raw_Reads"
+fpath="/UCHC/PublicShare/CBC_Tutorials/RNASeq_Workshop/Eastern_larch/Raw_Reads/"
 
 for f in ${fpath}/*; do
         echo $f

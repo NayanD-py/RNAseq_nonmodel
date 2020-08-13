@@ -81,14 +81,14 @@ Access to compute nodes is managed by [SLURM](https://slurm.schedmd.com/document
 #SBATCH -e %x_%j.err
 ```  
 
-This tutorial is not intended to teach you the details of the Xanadu cluster and SLURM, so before analyzing your own data, it would be useful to be familiar with the topics covered in the [Xanadu tutorial](https://bioinformatics.uconn.edu/resources-and-events/tutorials-2/xanadu/) and our [guidance on resource allocation requests in SLURM](https://github.com/CBC-UCONN/CBC_Docs/wiki/Requesting-resource-allocations-in-SLURM).  
+Following the header section is the code that is to be run. A batch job can be submitted by the command `sbatch myscript.sh`. This tutorial is not intended to teach you the details of the Xanadu cluster and SLURM, so before analyzing your own data, it would be useful to be familiar with the topics covered in the [Xanadu tutorial](https://bioinformatics.uconn.edu/resources-and-events/tutorials-2/xanadu/) and our [guidance on resource allocation requests in SLURM](https://github.com/CBC-UCONN/CBC_Docs/wiki/Requesting-resource-allocations-in-SLURM).  
 
 
-### Linking the Raw Reads data  
+### Obtaining the data 
 
-These data files are only avaliable through Xanadu cluster, as they belong to Dr. Jill Wegrzyn's lab. To avoid redundancy in the data files, you can create a simlink to the read files. After creating sym-links you can work your way though the rest of the steps as we have discussed in the tutorial. 
+These data files are only avaliable through Xanadu cluster, as they belong to Dr. Jill Wegrzyn's lab. The scripts assume the data are located in the `Raw_Reads/` directory. To avoid redundancy on the cluster, rather than copying the data there, you can create __symlinks__ to the read files. Symlinks are "symbolic links"--that is, they are file handles that point at the original files. 
 
-So in the **Raw_Reads/** folder we have created a script to creat a sym-links for the actual data, which is called [raw_data_symlinks.sh](/Raw_Reads/raw_data_symlinks.sh), You can run this script using `sbatch` command.  
+In the **Raw_Reads/** folder we have written a script ([raw_data_symlinks.sh](/Raw_Reads/raw_data_symlinks.sh)) to create these symlinks. You can run this script from using `sbatch`.  
  
   
 Raw_Reads folder will look like:  

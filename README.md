@@ -88,10 +88,12 @@ Following the header section is the code that is to be run. A batch job can be s
 
 These data files are only avaliable through Xanadu cluster, as they belong to Dr. Jill Wegrzyn's lab. The scripts assume the data are located in the `Raw_Reads/` directory. To avoid redundancy on the cluster, rather than copying the data there, you can create __symlinks__ to the read files. Symlinks are "symbolic links"--that is, they are file handles that point at the original files. 
 
-In the **Raw_Reads/** folder we have written a script ([raw_data_symlinks.sh](/Raw_Reads/raw_data_symlinks.sh)) to create these symlinks. You can run this script from using `sbatch`.  
- 
+In the **Raw_Reads/** folder we have written a script ([raw_data_symlinks.sh](/Raw_Reads/raw_data_symlinks.sh)) to create these symlinks. You can run this script from the `Raw_Reads` directory using `sbatch raw_data_symlinks.sh`.  
+
+Although the script uses a loop, the basic syntax for creating a symlink is `ln -s target_file symlink_name`
   
-Raw_Reads folder will look like:  
+After running the script, the Raw_Reads folder will look like:  
+
 ```
 Raw_Reads/
 ├── K23
@@ -108,9 +110,9 @@ Raw_Reads/
     └── U32_R2.fastq 
 ```
    
-### Familiarizing yourself with the raw reads
+### Familiarizing yourself with the raw read data
 
-The reads with which we will be working have been sequenced using [Illumina](https://www.illumina.com/techniques/sequencing.html). We assume that you are familiar with the sequencing technology. Let's have a look at the content of one of our reads, which are in the "fastq" format:
+The reads with which we will be working have been sequenced using [Illumina](https://www.illumina.com/techniques/sequencing.html). We'll assume here that you are familiar with the sequencing technology. Let's have a look at the content of one of our reads, which are in the `fastq` format:
 
 ```bash
 head -n 4 K32_R1.fastq
@@ -125,13 +127,15 @@ AGAACTCGAAACTAAACGTGGACGTGNTNNTATAAACNNANACNAATCCATCGCCGGTTNNCNTATNNNNNNNNNN
 AAAAAEEEEEEEEEEEEEEEEEEEEE#E##EEEEEEE##E#EE#EEEE6EEEEEEEEEE##A#EAE##########
 ```
 
-In here we see that first line corrosponds to the sample information followed by the length of the read, and in the second line corrosponds to the nucleotide reads, followed by the "+" sign where if repeats the information in the first line. Then the fourth line corrosponds to the quality score for each nucleotide in the first line.   
+The first line is the read ID which always begins with "@". The second gives the nucleotide sequence of the read. The third is a comment line, which always begins with "+" and is usually otherwise empty. The fourth line gives the [phred-scaled quality score](https://en.wikipedia.org/wiki/Phred_quality_score) for each base call in the read. The scores are [encoded using ascii characters](https://support.illumina.com/help/BaseSpace_OLH_009008/Content/Source/Informatics/BS/QualityScoreEncoding_swBS.htm) and give the estimated probability that the called base is in error. 
    
    
 ## 2. Quality Control
 
 ### Quality control of Illumina reads using Trimmommatic
-Step one is to perform quality control on the reads, and we will be using Sickle for the Illumina reads. To start with we have paired-end reads.  
+The first step in analyzing the sequence data is to evaluate its quality
+
+To start with we have paired-end reads.  
 
 ```bash
 module load Trimmomatic/0.39

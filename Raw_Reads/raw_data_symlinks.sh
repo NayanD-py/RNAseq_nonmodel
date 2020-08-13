@@ -13,7 +13,7 @@
 
 fpath="/UCHC/PublicShare/CBC_Tutorials/RNASeq_Workshop/Eastern_larch/Raw_Reads/"
 
-for f in ${fpath}/*; do
+for f in ${fpath}*; do
         echo $f
         echo `basename ${f}`
         ln -s ${f} `basename ${f}`

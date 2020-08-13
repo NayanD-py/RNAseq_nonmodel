@@ -48,7 +48,7 @@ Once you clone the repository you can see the following folder structure:
 
 ```  
 Eastern_larch/
-├── Raw_Reads
+├── 01_Raw_Reads
 ├── Quality_Control
 ├── Assembly
 ├── Coding_Regions
@@ -86,16 +86,16 @@ Following the header section is the code that is to be run. A batch job can be s
 
 ### Obtaining the data 
 
-These data files are only avaliable through Xanadu cluster, as they belong to Dr. Jill Wegrzyn's lab. The scripts assume the data are located in the `Raw_Reads/` directory. To avoid redundancy on the cluster, rather than copying the data there, you can create __symlinks__ to the read files. Symlinks are "symbolic links"--that is, they are file handles that point at the original files. 
+These data files are only avaliable through Xanadu cluster, as they belong to Dr. Jill Wegrzyn's lab. The scripts assume the data are located in the `01_Raw_Reads/` directory. To avoid redundancy on the cluster, rather than copying the data there, you can create __symlinks__ to the read files. Symlinks are "symbolic links"--that is, they are file handles that point at the original files. 
 
-In the **Raw_Reads/** folder we have written a script ([raw_data_symlinks.sh](/Raw_Reads/raw_data_symlinks.sh)) to create these symlinks. You can run this script from the `Raw_Reads` directory using `sbatch raw_data_symlinks.sh`.  
+In the `01_Raw_Reads/` directory we have written a script ([raw_data_symlinks.sh](/01_Raw_Reads/raw_data_symlinks.sh)) to create these symlinks. You can run this script from the `01_Raw_Reads` directory using `sbatch raw_data_symlinks.sh`.  
 
 Although the script uses a loop, the basic syntax for creating a symlink is `ln -s target_file symlink_name`
   
-After running the script, the Raw_Reads folder will look like:  
+After running the script, the 01_Raw_Reads folder will look like:  
 
 ```
-Raw_Reads/
+01_Raw_Reads/
 ├── K23
 │   ├── K23_R1.fastq
 │   └── K23_R2.fastq
@@ -127,7 +127,7 @@ AGAACTCGAAACTAAACGTGGACGTGNTNNTATAAACNNANACNAATCCATCGCCGGTTNNCNTATNNNNNNNNNN
 AAAAAEEEEEEEEEEEEEEEEEEEEE#E##EEEEEEE##E#EE#EEEE6EEEEEEEEEE##A#EAE##########
 ```
 
-The first line is the read ID which always begins with "@". The second gives the nucleotide sequence of the read. The third is a comment line, which always begins with "+" and is usually otherwise empty. The fourth line gives the [phred-scaled quality score](https://en.wikipedia.org/wiki/Phred_quality_score) for each base call in the read. The scores are [encoded using ascii characters](https://support.illumina.com/help/BaseSpace_OLH_009008/Content/Source/Informatics/BS/QualityScoreEncoding_swBS.htm) and give the estimated probability that the called base is in error. 
+The first line is the read ID which always begins with "@". The second gives the nucleotide sequence of the read. The third is a comment line, which always begins with "+" and is usually otherwise empty. The fourth line gives the [phred-scaled quality score](https://en.wikipedia.org/wiki/Phred_quality_score) for each base call in the read. The scores are [encoded using ASCII characters](https://support.illumina.com/help/BaseSpace_OLH_009008/Content/Source/Informatics/BS/QualityScoreEncoding_swBS.htm) and give the estimated probability that the called base is in error. 
    
    
 ## 2. Quality Control

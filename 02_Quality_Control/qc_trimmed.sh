@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=qc_raw
+#SBATCH --job-name=qc_trimmed
 #SBATCH -n 1
 #SBATCH -N 1
 #SBATCH -c 1
@@ -18,7 +18,7 @@ echo `hostname`
 #################################################################
 # create an output directory to hold fastqc output
 DIR="trimmed"
-mkdir -p $DIR
+mkdir -p ${DIR}_fastqc
 
 module load fastqc/0.11.7
 SAM=K21
@@ -40,4 +40,5 @@ fastqc --outdir ./${DIR}_fastqc/ trim_${SAM}_R1.fastq.gz trim_${SAM}_R2.fastq.gz
 #################################################################
 module load MultiQC/1.8
 
+mkdir -p ${DIR}_multiqc
 multiqc --outdir ${DIR}_multiqc ./${DIR}/

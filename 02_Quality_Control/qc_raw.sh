@@ -18,7 +18,7 @@ echo `hostname`
 #################################################################
 # create an output directory to hold fastqc output
 DIR="raw"
-mkdir -p $DIR
+mkdir -p ${DIR}_fastqc
 
 module load fastqc/0.11.7
 SAM=K21
@@ -40,4 +40,5 @@ fastqc --outdir ./${DIR}_fastqc/ ../01_Raw_Reads/${SAM}_R1.fastq.gz ../01_Raw_Re
 #################################################################
 module load MultiQC/1.8
 
+mkdir -p ${DIR}_multiqc
 multiqc --outdir ${DIR}_multiqc ./$DIR/

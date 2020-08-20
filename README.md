@@ -25,7 +25,7 @@ When an organism is called a **model** there is an underlying assumption that ve
 
 ![ out line ](/images/outline_wide.png)  
 
-Leaf samples were collected from three trees at two time points each (roughly one month apart). This results in six sequence libraries. 
+The leaf samples we'll analyze here were collected from three trees at two time points each (roughly one month apart). This results in six sequence libraries. 
 
 
   Sample   |   Location   |   Time point  |   Replicate tree
@@ -118,13 +118,13 @@ The "->" indicates that the filenames are symlinks, and gives the location of th
 
 ### Familiarizing yourself with the raw read data
 
-The reads with which we will be working have been sequenced using [Illumina](https://www.illumina.com/techniques/sequencing.html). We'll assume here that you are familiar with the sequencing technology. Let's have a look at the content of one of our reads, which are in the `fastq` format. They are additionally compressed using `gzip`, so we'll use a pipe (`|`) to decompress and view the first sequence record:
+The reads with which we will be working have been sequenced using [Illumina](https://www.illumina.com/techniques/sequencing.html). We'll assume here that you are familiar with the sequencing technology. Let's have a look at the content of one of our reads, which are in the `fastq` format. They are additionally compressed using `gzip`, so we'll use `zcat`, a pipe (`|`) and `head` to decompress and view the first sequence record:
 
 ```bash
 zcat K32_R1.fastq | head -n 4
 ```
 
-`zcat` decompresses and writes the fastq file in plain text. The pipe (`|`) captures the output and sends it to `head -n 4` which will print the first four lines to the screen and then stops the process. 
+`zcat` decompresses and writes the fastq file in plain text. The pipe (`|`) captures the output and sends it to `head -n 4` which will print the first four lines to the screen and then stops the process: 
 
 ```
 @NS500402:381:HH3NFBGX9:1:11101:2166:1038 1:N:0:CGCTCATT+AGGCTATA

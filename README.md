@@ -25,7 +25,7 @@ When an organism is called a **model** there is an underlying assumption that ve
 
 ![ out line ](/images/outline_wide.png)  
 
-The leaf samples we'll analyze here were collected from three trees at two time points each (roughly one month apart). This results in six sequence libraries. 
+The leaf samples we'll analyze here were collected from three trees at two time points each (roughly one month apart). This results in six sequence libraries. They were paired-end sequenced with 75bp reads. 
 
 
   Sample   |   Location   |   Time point  |   Replicate tree
@@ -142,101 +142,44 @@ The first line is the read ID which always begins with "@". The second gives the
 
 The first step in analyzing the sequence data is to evaluate its quality. The first thing we'll do is run a pair of programs, `FastQC` and `MultiQC` to assess some basic aspects of the quality of the data that came off the sequencer. `FastQC` generates reports for each fastq file and `MultiQC` aggregates the individual reports into a single HTML file to make it easy to see look them all over quickly. Then we'll run `Trimmomatic` to trim low quality sequence and adapter contamination from our reads. Finally we'll run  FastQC/MultiQC again to see how our data have improved. 
 
-To run FastQC/MultiQC, move to the directory `02_Quality_Control` and run the script `qc_raw.sh` by entering `sbatch qc_raw.sh` on the command line. This job will take about 30 minutes to complete. When it has completed you should download the HMTL report found in the newly created `raw_multiqc` directory. 
+To run FastQC/MultiQC, move to the directory `02_Quality_Control` and run the script `qc_raw.sh` by entering `sbatch qc_raw.sh` on the command line. 
 
-
-To start with we have paired-end reads.  
+A `FastQC` command line simply invokes the program, the output directory you want to use, and any number of fastq files, like this:
 
 ```bash
-module load Trimmomatic/0.39
+fastqc --outdir ./raw_fastqc/ ../01_Raw_Reads/K22_R1.fastq.gz ../01_Raw_Reads/K22_R2.fastq.gz
+```
 
+`MultiQC` is run like this:
+
+```bash
+multiqc --outdir raw_multiqc ./raw_fastqc/
+```
+
+This job will take about 30 minutes to complete. When it has completed you should download the HMTL report `multiqc_report.html` found in the newly created `raw_multiqc` directory. You can do this using `scp` or a GUI file transfer program such as Cyberduck or FileZilla. See the [CBC guidance on file transfers](https://bioinformatics.uconn.edu/resources-and-events/tutorials-2/data-transfer-2/) for more details. 
+
+Overall our data looks pretty good. FastQC flags some statistics as "Fail" but that's because the expectations are calibrated to whole-genome sequencing. In RNA-seq, some non-random base composition at the beginning of the sequences, as well as some overrepresented sequences are expected. For detailed explanation of each module in `FastQC` see [the documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/). 
+
+Although our data looks good, we'll still run `Trimmomatic` to remove low quality and residual adapter sequence. This is critical for transcriptome assembly. You can run the `Trimmomatic` script from the `02_Quality_Control` directory by entering `sbatch trimmomatic.sh` on the command line. This script will take about 2 hours to run. To run Trimmomatic on a single sample looks like this:
+
+```bash
+SAM=K21
 java -jar $Trimmomatic PE -threads 4 \
-        ../Raw_Reads/U13/U13_R1.fastq \
-        ../Raw_Reads/U13/U13_R2.fastq \
-        trim_U13_R1.fastq singles_trim_U13_R1.fastq \
-        trim_U13_R2.fastq singles_trim_U13_R2.fastq \
+        ../01_Raw_Reads/${SAM}_R1.fastq.gz \
+        ../01_Raw_Reads/${SAM}_R2.fastq.gz \
+        trim_${SAM}_R1.fastq.gz singles_trim_${SAM}_R1.fastq.gz \
+        trim_${SAM}_R2.fastq.gz singles_trim_${SAM}_R2.fastq.gz \
         ILLUMINACLIP:/isg/shared/apps/Trimmomatic/0.36/adapters/TruSeq3-PE-2.fa:2:30:10 \
-        SLIDINGWINDOW:4:25 MINLEN:45
-
-java -jar $Trimmomatic PE -threads 4 \
-        ../Raw_Reads/U32/U32_R1.fastq \
-        ../Raw_Reads/U32/U32_R2.fastq \
-        trim_U32_R1.fastq singles_trim_U32_R1.fastq \
-        trim_U32_R2.fastq singles_trim_U32_R2.fastq \
-        ILLUMINACLIP:/isg/shared/apps/Trimmomatic/0.36/adapters/TruSeq3-PE-2.fa:2:30:10 \
-        SLIDINGWINDOW:4:25 MINLEN:45
-
-java -jar $Trimmomatic PE -threads 4 \
-        ../Raw_Reads/K32/K32_R1.fastq \
-        ../Raw_Reads/K32/K32_R2.fastq \
-        trim_K32_R1.fastq singles_trim_K32_R1.fastq \
-        trim_K32_R2.fastq singles_trim_K32_R2.fastq \
-        ILLUMINACLIP:/isg/shared/apps/Trimmomatic/0.36/adapters/TruSeq3-PE-2.fa:2:30:10 \
-        SLIDINGWINDOW:4:25 MINLEN:45
-
-
-java -jar $Trimmomatic PE -threads 4 \
-        ../Raw_Reads/K23/K23_R1.fastq \
-        ../Raw_Reads/K23/K23_R2.fastq \
-        trim_K23_R1.fastq singles_trim_K23_R1.fastq \
-        trim_K23_R2.fastq singles_trim_K23_R2.fastq \
-        ILLUMINACLIP:/isg/shared/apps/Trimmomatic/0.36/adapters/TruSeq3-PE-2.fa:2:30:10 \
-        SLIDINGWINDOW:4:25 MINLEN:45
-
+        SLIDINGWINDOW:4:25 \
+        MINLEN:45
 ```
    
-The usage information on the Trimmomatic program:  
+`Trimmomatic` is a java program, so we invoke it by `java -jar $Trimmomatic`. In this case `$Trimmomatic` is an environmental variable set when you load the module that points to the actual jarfile for java to run. `PE` indicates we're running it in "paired-end" mode. `-threads 4` means we want to use 4 cpu threads to run it (make sure `-c 4` is set in the SLURM header!). Then we give the input and output fastq files. First the input R1 and R2, then their respective output files. The "singles" files are for reads whose mate pairs were too low quality to be retained. They are placed in a separate set of files. 
 
-```
-java -jar trimmomatic-0.30.jar [-threads <threads>]  
-	PE Sample_R1.fastq Sample_R2.fastq 
-	paired_Sample_R1.fastq Single_Sample_R1.fastq 
-	paired_Sample_R2.fastq Single_Sample_R2.fastq
-	ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 LEADING:3
-	TRAILING:3 SLIDINGWINDOW:4:25 MINLEN:45
-
--threads : Threads for parallel processing
-PE : Paired end samples
-Sample_R1.fastq Sample_R2.fastq : Input sample files (R1 and R2)
-paired_Sample_R1.fastq paired_Sample_R2.fastq : Output files of read where both pairs survived.
-Single_Sample_R1.fastq Single_Sample_R2.fastq : Output files of read where only one read of the pair survived.
-
-ILLUMINACLIP: Cut adapter and other illumina-specific sequences from the read.
-SLIDINGWINDOW: Performs a sliding window trimming approach. It starts scanning at the 5‟ end and clips the read once the average quality within the window falls below a threshold.
-MAXINFO: An adaptive quality trimmer which balances read length and error rate to
-maximise the value of each read
-LEADING: Cut bases off the start of a read, if below a threshold quality
-TRAILING: Cut bases off the end of a read, if below a threshold quality
-CROP: Cut the read to a specified length by removing bases from the end
-HEADCROP: Cut the specified number of bases from the start of the read
-MINLEN: Drop the read if it is below a specified length
-```  
-
-The `SLIDINGWINDOW` will calculate average phred score over defined window (above 4 bps) and when the average falls below the threshold (set to 25 here) the reads are trimmed. Another parameter is `MINLEN` which sets the minimum length of the read that is required to be accepted following the quality processing. `ILLUMINACLIP` is set to the path of fasta file containing adapter sequences in fasta format. Additional sequences can be added to the file if they have to be trimmed from the reads.
-
+Finally, we specify the trimming parameters. `ILLUMINACLIP:/isg/shared/apps/Trimmomatic/0.36/adapters/TruSeq3-PE-2.fa:2:30:10` gives the adapter sequences we want to be trimmed off and a few parameters for the trimming algorithm. `SLIDINGWINDOW:4:25` means that if at any point in a scan of the sequence the average quality drops below 25 in a 4bp span, the rest of the read will be cut off. `MINLEN:45` indicates that the read should be dropped altogether if it is trimmed shorter than 45bp. For a more detailed explanation of these (and other) options, [see the documentation](http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/TrimmomaticManual_V0.32.pdf.) 
 At the end of the run, each run will produce **4** files, a *trimmed forward read file*, *trimmed reverse read file* and two *singles file*. Singles file will contain the reads whose pair failed to pass the thresholds set in the trimmommatic step. The following files will be produced at the end of the run:  
-```
-Quality_Control/
-├── singles_trim_K23_R1.fastq
-├── singles_trim_K23_R2.fastq
-├── singles_trim_K32_R1.fastq
-├── singles_trim_K32_R2.fastq
-├── singles_trim_U13_R1.fastq
-├── singles_trim_U13_R2.fastq
-├── singles_trim_U32_R1.fastq
-├── singles_trim_U32_R2.fastq
-├── trim_K23_R1.fastq
-├── trim_K23_R2.fastq
-├── trim_K32_R1.fastq
-├── trim_K32_R2.fastq
-├── trim_U13_R1.fastq
-├── trim_U13_R2.fastq
-├── trim_U32_R1.fastq
-└── trim_U32_R2.fastq
 
-
-```
-  
+ 
 The summary of the reads will be in the `*.err` file, which will give how many reads is kept and how many have been discarded in each run.  
   
 | Sample | Input records | Paired records kept | Forward surviving | Reverse surviving | Records dropped | Kept (%) |   

@@ -41,4 +41,4 @@ fastqc --outdir ./${DIR}_fastqc/ ../01_Raw_Reads/${SAM}_R1.fastq.gz ../01_Raw_Re
 module load MultiQC/1.8
 
 mkdir -p ${DIR}_multiqc
-multiqc --outdir ${DIR}_multiqc ./$DIR/
+multiqc --outdir ${DIR}_multiqc ./${DIR}_fastqc/

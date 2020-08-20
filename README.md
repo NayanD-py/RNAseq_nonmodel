@@ -138,8 +138,12 @@ The first line is the read ID which always begins with "@". The second gives the
    
 ## 2. Quality Control
 
-### Quality control of Illumina reads using Trimmommatic
-The first step in analyzing the sequence data is to evaluate its quality
+### Quality control of Illumina reads using FastQC/MultiQC and Trimmommatic
+
+The first step in analyzing the sequence data is to evaluate its quality. The first thing we'll do is run a pair of programs, `FastQC` and `MultiQC` to assess some basic aspects of the quality of the data that came off the sequencer. `FastQC` generates reports for each fastq file and `MultiQC` aggregates the individual reports into a single HTML file to make it easy to see look them all over quickly. Then we'll run `Trimmomatic` to trim low quality sequence and adapter contamination from our reads. Finally we'll run  FastQC/MultiQC again to see how our data have improved. 
+
+To run FastQC/MultiQC, move to the directory `02_Quality_Control` and run the script `qc_raw.sh` by entering `sbatch qc_raw.sh` on the command line. This job will take about 30 minutes to complete. When it has completed you should download the HMTL report found in the newly created `raw_multiqc` directory. 
+
 
 To start with we have paired-end reads.  
 

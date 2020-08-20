@@ -41,4 +41,4 @@ fastqc --outdir ./${DIR}_fastqc/ trim_${SAM}_R1.fastq.gz trim_${SAM}_R2.fastq.gz
 module load MultiQC/1.8
 
 mkdir -p ${DIR}_multiqc
-multiqc --outdir ${DIR}_multiqc ./${DIR}/
+multiqc --outdir ${DIR}_multiqc ./${DIR}_fastqc/

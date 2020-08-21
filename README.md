@@ -182,7 +182,7 @@ At the end of the run, each run will produce **4** files, a *trimmed forward rea
  
 The summary of the reads will be in the `*.err` file, which will give how many reads is kept and how many have been discarded in each run.  
   
-| Sample | Input records | Paired records kept | Forward surviving | Reverse surviving | Records dropped | Kept (%) |   
+| Sample | Input records | Paired records kept | Forward surviving | Reverse surviving | Records dropped | Paired Kept (%) |   
 | --- | --- | --- | --- | --- | --- | --- |   
 | K21 | 19786941 | 15796097 | 2249710 | 577243 | 1163891 | 79.83% |
 | K22 | 21277520 | 16946089 | 2365838 | 733446 | 1232147 | 79.64% |

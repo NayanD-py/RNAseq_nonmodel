@@ -16,6 +16,7 @@ hostname
 date
 
 module load trinity/2.8.5
+module load samtools
 
 # this is an array job. SLURM will run this script 6 times in parallel (#SBATCH --array=[0-5]) contingent on resource availability
 	# each time it will change the value of the variable SLURM_ARRAY_TASK_ID
@@ -28,8 +29,8 @@ LIST=($(echo K21 K22 K23 K31 K32 K33))
 SAM=${LIST[$SLURM_ARRAY_TASK_ID]}
 
 Trinity --seqType fq \
-	--left ../02_Quality_Control/trim_${SAM}_R1.fastq \
-	--right ../02_Quality_Control/trim_${SAM}_R2.fastq \
+	--left ../02_Quality_Control/trim_${SAM}_R1.fastq.gz \
+	--right ../02_Quality_Control/trim_${SAM}_R2.fastq.gz \
 	--min_contig_length 300 \
 	--CPU 36 \
 	--max_memory 100G \

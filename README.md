@@ -5,7 +5,7 @@ This repository is a usable, publicly available tutorial for analyzing different
 ### Contents  
 1. [Introduction](#1-introduction)  
 2. [Quality Control](#2-quality-control)   
-3. [Assembling the Transcriptome](#3-assembling-the-transcriptome)  
+3. [Assembling Transcriptomes](#3-assembling-transcriptomes)  
 4. [Identifying the Coding Regions](#4-identifying-the-coding-regions)  
 5. [Determining and Removing Redundent Transcripts](#5-determining-and-removing-redundent-transcripts)
 6. [Evaluating Assemblies](#6-evaluating-assemblies)
@@ -194,7 +194,7 @@ The summary of the reads will be in the `*.err` file, which will give how many r
    
 
 
-## 3. Assembling the Transcriptome   
+## 3. Assembling Transcriptomes
     
 ### De Novo Assembly using `Trinity`
    
@@ -225,17 +225,14 @@ _Chrysalis_ clusters the Inchworm contigs and constructs complete de Bruijn grap
     
 _Butterfly_ then processes the individual graphs in parallel, tracing the paths that reads and pairs of reads take within the graph, ultimately reporting full-length transcripts for alternatively spliced isoforms, and teasing apart transcripts that corresponds to paralogous genes.   
    
-During the **Trinity** run lots of files will be generated. These checkpoint files will help us to restart from that specific point if for some reason the program stops prematurely. Once the program ends successfully all these checkpoint files will be removed since we have requested a full cleanup using the `--full_cleanup` command. Clearing the files is very important as it will help us to remove all the unwanted files and also to keep the storage capacity and the number of files to a minimum. So at the end of a successful run we will end up with the following files: 
+During the `Trinity` run lots of files will be generated. These checkpoint files will help us to restart from that specific point if for some reason the program stops prematurely. Once the program ends successfully all these checkpoint files will be removed since we have requested a full cleanup using the `--full_cleanup` command. Clearing the files is very important as it will help us to remove all the unwanted files and also to keep the storage capacity and the number of files to a minimum. So at the end of a successful run we will end up with the following files: 
    
 ```
 03_Assembly/
 ```
    
-So we will have three assembly files, one for each condition or time step.  
+So we will have six assemblies, one for each sample.  
   
-   
-     
-     
 ## 4. Identifying the Coding Regions   
    
 ### Identifying coding regions using TransDecoder   

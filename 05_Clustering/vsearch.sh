@@ -20,11 +20,10 @@ date
 module load vsearch/2.4.3
 
 vsearch --threads 8 --log LOGFile \
-	--cluster_fast ../Coding_Regions/trinity_combine.fasta.transdecoder.cds \
+	--cluster_fast ../04_Coding_Regions/trinity_combine.fasta.transdecoder.cds \
 	--id 0.90 \
 	--centroids centroids.fasta \
 	--uc clusters.uc
-
 
 date 
 

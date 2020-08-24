@@ -15,7 +15,7 @@ hostname
 date
 
 ##################################################
-## Combining the trinity assemblies		##
+## Combine the trinity assemblies		##
 ##################################################
 
 # add a sample name prefix to each sequence ID in each assembly
@@ -49,7 +49,6 @@ hmmscan --cpu 16 \
        --domtblout pfam.domtblout \
        /isg/shared/databases/Pfam/Pfam-A.hmm \
        trinity_combine.fasta.transdecoder_dir/longest_orfs.pep 
-
 
 TransDecoder.Predict -t ../03_Assembly/trinity_combine.fasta \
 	--retain_pfam_hits pfam.domtblout \

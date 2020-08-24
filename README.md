@@ -198,11 +198,11 @@ The summary of the reads will be in the `*.err` file, which will give how many r
     
 ### De Novo Assembly using `Trinity`
    
-Our main goal here is to quantify gene expression in each of our samples. Because we used the illumina platform to do our sequencing, our read lengths (and fragment sizes) are much shorter than the average transcript. So to identify which reads were derived from which genes, tally them up, and thus measure gene expression, the typical approach is to map the short reads back to a reference (either genome or transcriptome). Because we're working with a non-model organism, neither of those things are available, so here we'll assemble a transcriptome _de novo_. For a detailed review of genome assembly see [Simpson and Pop (2015)](https://www.annualreviews.org/doi/10.1146/annurev-genom-090314-050032). 
+Our main goal here is to quantify gene expression in each of our samples. Because we used the illumina platform to do our sequencing, our read lengths (and fragment sizes) are much shorter than the average transcript. To identify which reads were derived from which genes, tally them up, and thus measure gene expression, the typical approach is to map the short reads back to a reference (either genome or transcriptome). Because we're working with a non-model organism, neither of those things are available. So here we'll assemble a transcriptome _de novo_. For a detailed review of genome assembly see [Simpson and Pop (2015)](https://www.annualreviews.org/doi/10.1146/annurev-genom-090314-050032). 
 
 To create a single reference transcriptome for all six samples, we'll first assemble each sample separately, pool all the resulting transcripts, cluster them into groups that hopefully represent single genes, and finally select a single "best" representative transcript for each gene. 
 
-To do the assemblies we'll use the software [`Trinity`](https://github.com/trinityrnaseq/trinityrnaseq/wiki). Assembly requires a great deal of memory (RAM) and can take few days if the read set is large. The script to run `Trinity` is in the `03_Assembly` directory. You can run it from that directory by entering `sbatch trinity.sh` from the command line. Following is the command that we use to assemble each individual. 
+To do the assemblies we'll use the software [`Trinity`](https://github.com/trinityrnaseq/trinityrnaseq/wiki). Assembly requires a great deal of memory (RAM) and can take few days if the read set is large. The script to run `Trinity` is in the `03_Assembly` directory. You can run it from that directory by entering `sbatch trinity.sh` from the command line. Following is the command that we use to assemble each individual. Each of these assemblies will take between 6 and 15 hours. 
    
 ```bash
 SAM=K21
@@ -229,54 +229,54 @@ During the `Trinity` run lots of files will be generated. These checkpoint files
    
 ```
 03_Assembly/
+├── trinity_K21.Trinity.fasta
+├── trinity_K21.Trinity.fasta.gene_trans_map
+├── trinity_K22.Trinity.fasta
+├── trinity_K22.Trinity.fasta.gene_trans_map
+├── trinity_K23.Trinity.fasta
+├── trinity_K23.Trinity.fasta.gene_trans_map
+├── trinity_K31.Trinity.fasta
+├── trinity_K31.Trinity.fasta.gene_trans_map
+├── trinity_K32.Trinity.fasta
+├── trinity_K32.Trinity.fasta.gene_trans_map
+├── trinity_K33.Trinity.fasta
+├── trinity_K33.Trinity.fasta.gene_trans_map
+└── trinity.sh
 ```
    
-So we will have six assemblies, one for each sample.  
+So we will have six assemblies in fasta format, one for each sample.  
   
 ## 4. Identifying the Coding Regions   
-   
-### Identifying coding regions using TransDecoder   
 
-Before looking for the coding regions we will combine all the assemblies together so we can ultimately pick a single best contig to represent each gene we find. Before we can combine these files, we first need to ensure that each sequence has a unique name. Because of Trinity's naming convention, there are likely to be identical sequence names appearing in each assembly. These redundant names would confuse TransDecoder and turn some of its output into nonsense. Worse, this error would occur silently and be propagated to the rest of our analyses. To deal with this, we'll simply add a sample ID prefix to each sequence name using the linux utility `sed`. 
+Our goal in this portion of the tutorial is to create a single reference transcriptome containing one reference transcript per gene to quantify gene expression in all six samples against. We need to identify the coding regions of the transcripts for the first step in this process because we'll perform the clustering of redundant transcripts within and among samples using amino acid, not nucleotide sequences. Later on, we'll also use amino acid sequences to do annotation using EnTAP. 
+   
+### Identifying coding regions using `TransDecoder` and `hmmer`  
+
+Before looking for the coding regions we'll combine all the assemblies together. Because of `Trinity's` naming convention, there are likely to be identical sequence names appearing in each assembly. These redundant names would confuse `TransDecoder` and turn some of its output into nonsense. Worse, this error would occur silently and be propagated to the rest of our analyses. To deal with this, we'll simply add a sample ID prefix to each sequence name using the linux utility `sed`. For a single file:
 
 ```bash
-sed 's/>/>K23_/g' ../Assembly/trinity_K23.Trinity.fasta > ../Assembly/trinity_prefix_K23.Trinity.fasta
-sed 's/>/>K32_/g' ../Assembly/trinity_K32.Trinity.fasta > ../Assembly/trinity_prefix_K32.Trinity.fasta
-sed 's/>/>U13_/g' ../Assembly/trinity_U13.Trinity.fasta > ../Assembly/trinity_prefix_U13.Trinity.fasta
-sed 's/>/>U32_/g' ../Assembly/trinity_U32.Trinity.fasta > ../Assembly/trinity_prefix_U32.Trinity.fasta
-
+SAM=K21
+sed "s/>/>${SAM}_/g" ../03_Assembly/trinity_${SAM}.Trinity.fasta > ../03_Assembly/trinity_prefix_${SAM}.Trinity.fasta
 ```
 Now we can concatenate the assemblies into a single file:
 
 ```bash
-cat ../Assembly/trinity_prefix_U13.Trinity.fasta \
-	../Assembly/trinity_prefix_U32.Trinity.fasta \
-	../Assembly/trinity_prefix_K32.Trinity.fasta \
-	../Assembly/trinity_prefix_K23.Trinity.fasta >> ../Assembly/trinity_combine.fasta
+cat ../03_Assembly/trinity_prefix_* > ../03_Assembly/trinity_combine.fasta
 ``` 
 
-Now that we have our reads assembled and combined together into the single file, we can use [TransDecoder](https://github.com/TransDecoder/TransDecoder/wiki) to determine optimal open reading frames from the assembly (ORFs). Assembled RNA-Seq transcripts may have 5′ or 3′ UTR sequence attached and this can make it difficult to determine the coding sequence (CDS) in non-model species. We will not be going into how TransDecoder works. Please follow the link for detials on transdecoder https://github.com/TransDecoder/TransDecoder/wiki.
-Our first step is to determine all [open-reading-frames](https://en.wikipedia.org/wiki/Open_reading_frame). We can do this using the 'TransDecoder.LongOrfs' command. This command is quite simple, with one option, '-t', which is simply our centroid fasta! The command is therefore:   
+Now that we have our reads assembled and combined together into the single file, we can run `TransDecoder` and `hmmer` to identify likely coding regions. There are three steps here. First, identify long [**open reading frames**]((https://en.wikipedia.org/wiki/Open_reading_frame)) (ORFs) using `TransDecoder.LongOrfs`. Many transcripts will have multiple ORFs that could correspond to a true coding sequence. Second, identify ORFs with homology to known proteins using [`hmmer`](http://hmmer.org/). Third, use `TransDecoder.Predict` to generate a final set of candidate coding regions. 
+
+
+To find all long ORFs, we run `TransDecoder.LongOrfs` like this:
    
 ```
-module load TransDecoder/5.3.0
-
 TransDecoder.LongOrfs -t ../Assembly/trinity_combine.fasta
 ```
 
-The command usage would be:
-```
-Transdecoder.LongOrfs [options]
-
-Required:
-  -t <string>           transcripts.fasta
-```
-
-
-By default it will identify ORFs that are at least 100 amino acids long. (you can change this by using -m parameter). It will produce a folder called centroids.fasta.transdecoder_dir   
+By default it will identify ORFs that are at least 100 amino acids long (you can change this by using -m parameter). It will produce a folder called `trinity_combine.fasta.transdecoder_dir`.  
 
 ```
-coding_regions
+04_Coding_Regions
 ├── trinity_combine.fasta.transdecoder_dir
 │   ├── base_freqs.dat
 │   ├── longest_orfs.cds
@@ -284,8 +284,7 @@ coding_regions
 │   └── longest_orfs.pep
 ```
 
-
-Next step is to identify ORFs with homology to known proteins via blast or pfam searches. This will maximize the sensitivity for capturing the ORFs that have functional significance. We will be using the Pfam databases. Pfam stands for "Protein families", and is simply an absolutely massive database with mountains of searchable information on, well, you guessed it, protein families. We can scan the Pfam databases using the software hmmer, a database homologous-sequence fetcher. The Pfam databases are much too large to install on a local computer. However, you may find them on Xanadu in the directory '/isg/shared/databases/Pfam/Pfam-A.hmm', which is an hmmer file (must be an hmmer file for hmmer to scan!).  
+Many transcripts are likely to have multiple ORFs, so it will be helpful to bring in evidence of homology to known proteins for the final predictions. We'll do this by searching the `Pfam` database. `Pfam` stands for "Protein families", and is a massive database with mountains of searchable information on, well, you guessed it, protein families. This will maximize the sensitivity for capturing the ORFs that have functional significance. We can scan the `Pfam` database using the software `hmmer`. The `Pfam` database is much too large to install on a local computer. We have a copy on Xanadu, however, in the directory `/isg/shared/databases/Pfam/Pfam-A.hmm`. We'll run `hmmer` like this:
    
 ```
 hmmscan --cpu 16 \
@@ -294,28 +293,14 @@ hmmscan --cpu 16 \
         trinity_combine.fasta.transdecoder_dir/longest_orfs.pep
 ```
 
-Usage of the command:
-```
-Usage: hmmscan [-options] <hmmdb> <seqfile>
-
-Options controlling output:
---domtblout <f>  : save parseable table of per-domain hits to file <f>
-
-Other expert options:
---cpu <n>     : number of parallel CPU workers to use for multithreads  [2]
-```
-
-It is absolutely vital that you place these arguments in the order in which they appear above. You do not want 'hmmscan' thinking your centroids are your database and your database are your centroids!    
-
-
 Once the run is completed it will create the following files in the directory.
 
 ```
-coding_regions
+04_Coding_Regions
 ├── pfam.domtblout
 ```
     
-Lastly we use the 'TransDecoder.Predict' function to predict the coding regions we should expect in our transcriptome using the output from hmmscan (the pfam.domtblout file).   
+Lastly we use the 'TransDecoder.Predict' function along with our `hmmer` output to make final predictions about which ORFs in our transcripts are real.  
    
 ```bash
 TransDecoder.Predict -t ../Assembly/trinity_combine.fasta \
@@ -323,20 +308,9 @@ TransDecoder.Predict -t ../Assembly/trinity_combine.fasta \
         --cpu 16
 ```   
    
-Usage of the command:   
-```
-Transdecoder.LongOrfs
-
-Required:
--t <string>        : transcripts.fasta
-
-Common options:
---retain_pfam_hits : domain table output file from running hmmscan to search Pfam (see transdecoder.github.io for info)
-```   
-   
 This will add output to our `trinity_combine.fasta.transdecoder_dir`, which now looks like:
 ```
-Coding_Regions/
+04_Coding_Regions/
 ├── pfam.domtblout
 ├── pipeliner.38689.cmds
 ├── pipeliner.5719.cmds
@@ -359,8 +333,8 @@ Coding_Regions/
 └── trinity_combine.fasta.transdecoder.pep
 ```
 
-The full script is called [transdecoder.sh](/Coding_Regions/transdecoder.sh), which is located in the `Coding_Regions` directory.    
-In the next step we will be using the *trinity_combine.fasta.transdecoder.cds* fasta file for creating consensus sequence.   
+The full script is called [transdecoder.sh](/04_Coding_Regions/transdecoder.sh). It can be run from the `04_Coding_Regions` directory by entering `sbatch transdecoder.sh` on the command line. 
+
    
      
     

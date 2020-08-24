@@ -5,7 +5,7 @@ This repository is a usable, publicly available tutorial for analyzing different
 ### Contents  
 1. [Introduction](#1-introduction)  
 2. [Quality Control](#2-quality-control)   
-3. [Assembling Transcriptomes](#3-assembling-transcriptomes)  
+3. [De Novo Assembly Using Trinity](#3-de-novo-assembly-using-trinity)  
 4. [Identifying the Coding Regions](#4-identifying-the-coding-regions)  
 5. [Determining and Removing Redundent Transcripts](#5-determining-and-removing-redundent-transcripts)
 6. [Evaluating Assemblies](#6-evaluating-assemblies)
@@ -194,9 +194,7 @@ The summary of the reads will be in the `*.err` file, which will give how many r
    
 
 
-## 3. Assembling Transcriptomes
-    
-### De Novo Assembly using `Trinity`
+## 3. De Novo Assembly using `Trinity`
    
 Our main goal here is to quantify gene expression in each of our samples. Because we used the illumina platform to do our sequencing, our read lengths (and fragment sizes) are much shorter than the average transcript. To identify which reads were derived from which genes, tally them up, and thus measure gene expression, the typical approach is to map the short reads back to a reference (either genome or transcriptome). Because we're working with a non-model organism, neither of those things are available. So here we'll assemble a transcriptome _de novo_. For a detailed review of genome assembly see [Simpson and Pop (2015)](https://www.annualreviews.org/doi/10.1146/annurev-genom-090314-050032). 
 

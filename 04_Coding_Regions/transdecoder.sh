@@ -19,25 +19,31 @@ date
 ##################################################
 
 # add a sample name prefix to each sequence ID in each assembly
-sed 's/>/>K23_/g' ../Assembly/trinity_K23.Trinity.fasta > ../Assembly/trinity_prefix_K23.Trinity.fasta
-sed 's/>/>K32_/g' ../Assembly/trinity_K32.Trinity.fasta > ../Assembly/trinity_prefix_K32.Trinity.fasta
-sed 's/>/>U13_/g' ../Assembly/trinity_U13.Trinity.fasta > ../Assembly/trinity_prefix_U13.Trinity.fasta
-sed 's/>/>U32_/g' ../Assembly/trinity_U32.Trinity.fasta > ../Assembly/trinity_prefix_U32.Trinity.fasta
+SAM=K21
+sed "s/>/>${SAM}_/g" ../03_Assembly/trinity_${SAM}.Trinity.fasta > ../03_Assembly/trinity_prefix_${SAM}.Trinity.fasta
+SAM=K22
+sed "s/>/>${SAM}_/g" ../03_Assembly/trinity_${SAM}.Trinity.fasta > ../03_Assembly/trinity_prefix_${SAM}.Trinity.fasta
+SAM=K23
+sed "s/>/>${SAM}_/g" ../03_Assembly/trinity_${SAM}.Trinity.fasta > ../03_Assembly/trinity_prefix_${SAM}.Trinity.fasta
+SAM=K31
+sed "s/>/>${SAM}_/g" ../03_Assembly/trinity_${SAM}.Trinity.fasta > ../03_Assembly/trinity_prefix_${SAM}.Trinity.fasta
+SAM=K32
+sed "s/>/>${SAM}_/g" ../03_Assembly/trinity_${SAM}.Trinity.fasta > ../03_Assembly/trinity_prefix_${SAM}.Trinity.fasta
+SAM=K33
+sed "s/>/>${SAM}_/g" ../03_Assembly/trinity_${SAM}.Trinity.fasta > ../03_Assembly/trinity_prefix_${SAM}.Trinity.fasta
 
 # concatenate the assemblies
-cat ../Assembly/trinity_prefix_U13.Trinity.fasta \
-	../Assembly/trinity_prefix_U32.Trinity.fasta \
-	../Assembly/trinity_prefix_K32.Trinity.fasta \
-	../Assembly/trinity_prefix_K23.Trinity.fasta >> ../Assembly/trinity_combine.fasta
+cat ../03_Assembly/trinity_prefix_* > ../03_Assembly/trinity_combine.fasta
 
 
 ##################################################
 ## Determine ORF using Transdecoder		##
 ##################################################
+
 module load hmmer/3.2.1
 module load TransDecoder/5.3.0
 
-TransDecoder.LongOrfs -t ../Assembly/trinity_combine.fasta
+TransDecoder.LongOrfs -t ../03_Assembly/trinity_combine.fasta
 
 hmmscan --cpu 16 \
        --domtblout pfam.domtblout \
@@ -45,7 +51,7 @@ hmmscan --cpu 16 \
        trinity_combine.fasta.transdecoder_dir/longest_orfs.pep 
 
 
-TransDecoder.Predict -t ../Assembly/trinity_combine.fasta \
+TransDecoder.Predict -t ../03_Assembly/trinity_combine.fasta \
 	--retain_pfam_hits pfam.domtblout \
 	--cpu 16 
 

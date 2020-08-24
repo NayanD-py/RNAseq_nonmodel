@@ -5,7 +5,7 @@ This repository is a usable, publicly available tutorial for analyzing different
 ### Contents  
 1. [Introduction](#1-introduction)  
 2. [Quality Control](#2-quality-control)   
-3. [De Novo Assembly Using Trinity](#3-de-novo-assembly-using-trinity)  
+3. [Assembling Transcriptomes](#3-assembling-transcriptomes)  
 4. [Identifying the Coding Regions](#4-identifying-the-coding-regions)  
 5. [Determining and Removing Redundent Transcripts](#5-determining-and-removing-redundent-transcripts)
 6. [Evaluating Assemblies](#6-evaluating-assemblies)
@@ -194,9 +194,11 @@ The summary of the reads will be in the `*.err` file, which will give how many r
    
 
 
-## 3. De Novo Assembly using `Trinity`
-   
+## 3. Assembling Transcriptomes
+       
 Our main goal here is to quantify gene expression in each of our samples. Because we used the illumina platform to do our sequencing, our read lengths (and fragment sizes) are much shorter than the average transcript. To identify which reads were derived from which genes, tally them up, and thus measure gene expression, the typical approach is to map the short reads back to a reference (either genome or transcriptome). Because we're working with a non-model organism, neither of those things are available. So here we'll assemble a transcriptome _de novo_. For a detailed review of genome assembly see [Simpson and Pop (2015)](https://www.annualreviews.org/doi/10.1146/annurev-genom-090314-050032). 
+
+### De Novo Assembly using `Trinity`
 
 To create a single reference transcriptome for all six samples, we'll first assemble each sample separately, pool all the resulting transcripts, cluster them into groups that hopefully represent single genes, and finally select a single "best" representative transcript for each gene. 
 
@@ -339,33 +341,22 @@ The full script is called [transdecoder.sh](/04_Coding_Regions/transdecoder.sh).
 
 ## 5. Determining and Removing Redundant Transcripts
 
-### Clustering using vsearch
-We independently assembled transcriptome for the 4 samples using trinity. There will be many transcripts that are present in all the 4 assembled sample transcriptomes,  and hence will be present multiple times in the `trinity_combine.fasta`.  In the previous step we used `transdecoder` to get rid of spurious transcripts based on the criteria of coding region and pfam matches. However this will not affect the redundency between the transcripts and we still have the issue of multiple represntation of same /similar transcripts. We will be using vsearch to cluster the transcripts with similar sequences (similarity is set by the identity between the sequences --id) and then collapse them in one representative transcript (centroid). A more detailed account of the application can be found at: [vsearch](https://github.com/torognes/vsearch).
-The threshold for clustering in this example is set to 90% identity. In this step we will be working in the **Clustering/** directory:   
+De novo transcriptomes are complex, containing both biological variation in the form of alternately spliced transcripts and nucleotide sequence variation, and technical issues such as fragmented transcripts. In this study we have six of them. In this tutorial, we're aiming to quantify gene expression at the gene level, so ideally we want to winnow out much of this complexity and create a single transcriptome with one transcript representing each underlying gene against which we can quantify gene expression for all six samples. In the previous step, we identified candidate coding regions for transcripts from all six samples. In this step, we'll cluster all those transcripts by amino acid sequence and select a single one to represent each cluster. 
+
+### Clustering using `vsearch`
+
+We will use `vsearch` to cluster the transcripts with similar sequences (similarity is set by the identity between the sequences --id) and then choose one representative transcript (the centroid). A more detailed account of the application can be found at: [vsearch](https://github.com/torognes/vsearch). The threshold for clustering in this example is set to 90% identity. We'll run `vsearch` like this: 
  
 ```bash
-module load vsearch/2.4.3
-
 vsearch --threads 8 --log LOGFile \
         --cluster_fast ../Coding_Regions/trinity_combine.fasta.transdecoder.cds \
         --id 0.90 \
         --centroids centroids.fasta \
         --uc clusters.uc
-
 ```
 
-Command options in the vsearch program that we used:
-```
-Usage: vsearch [OPTIONS]
---threads INT               number of threads to use, zero for all cores (0)
---log FILENAME              write messages, timing and memory info to file
---cluster_fast FILENAME     cluster sequences after sorting by length
---id REAL                   reject if identity lower, accepted values: 0-1.0
---centroids FILENAME        output centroid sequences to FASTA file
---uc FILENAME               specify filename for UCLUST-like output
-```
+The full script is called [vsearch.sh](/05_Clustering/vsearch.sh). It can be run from the `05_Clustering` directory by entering `sbatch vsearch.sh` on the command line. At the end of the run it will produce the following files:
 
-The full script is called [vsearch.sh](/Clustering/vsearch.sh), which can be found in the **Clustering** folder. At the end of the run it will produce the following files:
 ```
 Clustering/
 ├── centroids.fasta
@@ -374,7 +365,7 @@ Clustering/
 └── LOGFile
 ```
 
-The _centroids.fasta_ will contain the unique genes from the four assemblies. 
+The `centroids.fasta` file will contain the unique genes from the 6 assemblies. 
     
 
 ## 6. Evaluating Assemblies  

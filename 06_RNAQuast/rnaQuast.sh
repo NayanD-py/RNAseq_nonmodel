@@ -21,12 +21,10 @@ date
 module load rnaQUAST/1.5.2
 module load GeneMarkS-T/5.1
 
-
-rnaQUAST.py --transcripts ../Clustering/centroids.fasta \
+rnaQUAST.py --transcripts ../06_Clustering/centroids.fasta \
 	--gene_mark \
 	--threads 8 \
 	--output_dir results
-
 
 date 
 

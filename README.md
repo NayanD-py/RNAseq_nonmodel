@@ -8,7 +8,7 @@ This repository is a usable, publicly available tutorial for analyzing different
 3. [Assembling Transcriptomes](#3-assembling-transcriptomes)  
 4. [Identifying the Coding Regions](#4-identifying-the-coding-regions)  
 5. [Determining and Removing Redundent Transcripts](#5-determining-and-removing-redundent-transcripts)
-6. [Evaluating Assemblies](#6-evaluating-assemblies)
+6. [Evaluating the Assembly](#6-evaluating-the-assembly)
 7. [Creating An Index](#7-creating-an-index)
 8. [Extraction of Read Counts using Kallisto](#8-extraction-of-read-counts-using-kallisto)
 9. [Diffferential Expression](#9-diffferential-expression)  
@@ -248,7 +248,7 @@ So we will have six assemblies in fasta format, one for each sample.
   
 ## 4. Identifying the Coding Regions   
 
-Our goal in this portion of the tutorial is to create a single reference transcriptome containing one reference transcript per gene to quantify gene expression in all six samples against. We need to identify the coding regions of the transcripts for the first step in this process because we'll perform the clustering of redundant transcripts within and among samples using amino acid, not nucleotide sequences. Later on, we'll also use amino acid sequences to do annotation using EnTAP. 
+Our goal in this portion of the tutorial is to create a single reference transcriptome containing one reference transcript per gene to quantify gene expression in all six samples against. We need to identify the coding regions of the transcripts for the first step in this process because we'll perform the clustering of redundant transcripts within and among samples using coding sequences. Later on, we'll also use amino acid sequences to do annotation using EnTAP. 
    
 ### Identifying coding regions using `TransDecoder` and `hmmer`  
 
@@ -341,7 +341,7 @@ The full script is called [transdecoder.sh](/04_Coding_Regions/transdecoder.sh).
 
 ## 5. Determining and Removing Redundant Transcripts
 
-De novo transcriptomes are complex, containing both biological variation in the form of alternately spliced transcripts and nucleotide sequence variation, and technical issues such as fragmented transcripts. In this study we have six of them. In this tutorial, we're aiming to quantify gene expression at the gene level, so ideally we want to winnow out much of this complexity and create a single transcriptome with one transcript representing each underlying gene against which we can quantify gene expression for all six samples. In the previous step, we identified candidate coding regions for transcripts from all six samples. In this step, we'll cluster all those transcripts by amino acid sequence and select a single one to represent each cluster. 
+De novo transcriptome assemblies are complex, containing both biological variation in the form of alternately spliced transcripts and nucleotide sequence variation, and technical issues such as fragmented transcripts. In this tutorial we have six de novo transcriptome assemblies. We're aiming to quantify gene expression at the gene level, so ideally we want to winnow out much of this complexity and create a single transcriptome with one transcript representing each underlying gene against which we can quantify gene expression for all six samples. In the previous step, we identified candidate coding regions for transcripts from all six samples. In this step, we'll cluster all those transcripts by amino acid sequence and select a single one to represent each cluster. 
 
 ### Clustering using `vsearch`
 
@@ -358,41 +358,29 @@ vsearch --threads 8 --log LOGFile \
 The full script is called [vsearch.sh](/05_Clustering/vsearch.sh). It can be run from the `05_Clustering` directory by entering `sbatch vsearch.sh` on the command line. At the end of the run it will produce the following files:
 
 ```
-Clustering/
+05_Clustering/
 ├── centroids.fasta
 ├── clusters.uc
 ├── combine.fasta
 └── LOGFile
 ```
 
-The `centroids.fasta` file will contain the unique genes from the 6 assemblies. 
+The `centroids.fasta` file will contain the representative transcripts from the 6 assemblies. 
     
 
-## 6. Evaluating Assemblies  
+## 6. Evaluating the Assembly  
 
- Once you have assembled the transcripts quality of your assembled transcriptome can be evaluate and benchmarked against a gene database using [rnaQUAST](http://cab.spbu.ru/software/rnaquast/). This will compare the alignments with the gene database and will produce a summary report at the end.
+Now that we've settled on our reference transcriptome (`centroids.fasta`), we can assess its quality. We will benchmark it against a gene database using [rnaQUAST](http://cab.spbu.ru/software/rnaquast/). This will compare the transcripts with a gene database and will produce a summary report. 
 
-As now we have a assembled transcripts in a centroids file, we will evaluate this using **rnaQuast**. In this step we will be working in the **RNAQuast/** directory.  
 
 ```bash
-module load rnaQUAST/1.5.2
-module load GeneMarkS-T/5.1
-
-rnaQUAST.py --transcripts ../Clustering/centroids.fasta \
+rnaQUAST.py --transcripts ../05_Clustering/centroids.fasta \
 	--gene_mark \
-        --threads 8 \
-        --output_dir Genemark
+  --threads 8 \
+  --output_dir Genemark
 ```
 
-Command options we used in the above are:
-```
---transcripts <TRANSCRIPTS, ...>        transcripts in FASTA format
---gene_mark                             Run with GeneMarkS-T gene prediction tool
---threads <INT>                         Maximum number of threads. Default is min(number of CPUs / 2, 16)
---output_dir <OUTPUT_DIR>               Directory to store all results
-```
-
-The full slurm script is called [rnaQuast.sh](/RNAQuast/rnaQuast.sh) and it can be found in the **RNAQuast/** directory.    
+The full slurm script is called [rnaQuast.sh](/RNAQuast/rnaQuast.sh) and it can run from the `06_RNAQuast` directory by entering `sbatch rnaQuast.sh` on the command line. The resulting directory will look like this:
 
 ```
 RNAQuast/
@@ -421,7 +409,7 @@ Longest transcript   |   13230
 Total length   |    42619973   
 Transcript N50  |    407   
 
-Now that we have generated a reference transcriptome with possible transcripts.  We will measure the expression of transcripots across the 4 samples.  In this tutorial we will be using `Kallisto` for quantifying transcripts based on the reads in the fastq files.  In order to use `kallisto` we have to index our transcriptome, a pre-requisite for using this application.  So our next step is indexing our reference transcriptome.
+
      
 ## 7. Creating An Index   
 

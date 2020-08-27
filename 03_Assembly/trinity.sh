@@ -19,7 +19,7 @@ module load trinity/2.8.5
 module load samtools
 
 # this is an array job. SLURM will run this script 6 times in parallel (#SBATCH --array=[0-5]) contingent on resource availability
-	# each time it will change the value of the variable SLURM_ARRAY_TASK_ID
+	# each time SLURM will change the value of the variable SLURM_ARRAY_TASK_ID
 	# we'll use a bash array and that variable to retrieve a diferent sample
 
 # a bash array containing the sample IDs

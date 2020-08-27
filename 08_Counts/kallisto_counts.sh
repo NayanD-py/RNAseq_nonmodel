@@ -6,38 +6,36 @@
 #SBATCH --mem=30G
 #SBATCH --partition=general
 #SBATCH --qos=general
-#SBATCH --mail-type=ALL
-#SBATCH --mail-user=first.last@uconn.edu
-#SBATCH -o %x_%j.out
-#SBATCH -e %x_%j.err
+#SBATCH --array=[0-5]
+##SBATCH --mail-type=ALL
+##SBATCH --mail-user=
+#SBATCH -o %x_%A_%a.out
+#SBATCH -e %x_%A_%a.err
 
 hostname
 date
+
 ##########################################
 ## kallisto quantification algorithm	##	
 ##########################################
+
 module load kallisto/0.44.0
 
-kallisto quant -i ../Index/Eastern_larch_index \
-	-o K23 \
+# this is an array job. SLURM will run this script 6 times in parallel (#SBATCH --array=[0-5]) contingent on resource availability
+	# each time SLURM will change the value of the variable SLURM_ARRAY_TASK_ID
+	# we'll use a bash array and that variable to retrieve a diferent sample
+
+# a bash array containing the sample IDs
+LIST=($(echo K21 K22 K23 K31 K32 K33))
+
+# get one sample ID using the slurm array task ID
+SAM=${LIST[$SLURM_ARRAY_TASK_ID]}
+
+kallisto quant \
+	-i ../05_Clustering/centroids.fasta.index \
+	-o ${SAM} \
 	-t 8 \
-	../Quality_Control/trim_K23_R1.fastq ../Quality_Control/trim_K23_R2.fastq
-
-kallisto quant -i ../Index/Eastern_larch_index \
-	-o K32 \
-	-t 8 \
-	../Quality_Control/trim_K32_R1.fastq ../Quality_Control/trim_K32_R2.fastq
-
-kallisto quant -i ../Index/Eastern_larch_index \
-        -o U32 \
-        -t 8 \
-        ../Quality_Control/trim_U32_R1.fastq ../Quality_Control/trim_U32_R2.fastq
-
-kallisto quant -i ../Index/Eastern_larch_index \
-        -o U13 \
-        -t 8 \
-        ../Quality_Control/trim_U13_R1.fastq ../Quality_Control/trim_U13_R2.fastq
-
+	../Quality_Control/trim_${SAM}_R1.fastq.gz ../Quality_Control/trim_${SAM}_R2.fastq.gz
 
 date 
 

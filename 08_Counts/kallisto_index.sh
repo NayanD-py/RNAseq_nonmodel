@@ -20,7 +20,7 @@ date
 
 module load kallisto/0.44.0
 
-kallisto index -i ../05_Clustering/Eastern_larch_index ../05_Clustering/centroids.fasta
+kallisto index -i ../05_Clustering/centroids.fasta.index ../05_Clustering/centroids.fasta
 
 date 
 

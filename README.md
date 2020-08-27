@@ -13,9 +13,8 @@ This repository is a usable, publicly available tutorial for analyzing different
 5. [Determining and Removing Redundant Transcripts](#5-determining-and-removing-redundant-transcripts)
 6. [Evaluating the Assembly](#6-evaluating-the-assembly)
 7. [Functional Annotation](#7-functional-annotation) 
-8. [Creating An Index](#7-creating-an-index)
-9. [Extraction of Read Counts using Kallisto](#8-extraction-of-read-counts-using-kallisto)
-10. [Diffferential Expression](#9-diffferential-expression)  
+8. [Quantifying Gene Expression](#8-quantifying-gene-expression)
+9. [Diffferential Expression](#9-diffferential-expression)  
        a.    [Gfold](#a-differentially-expressed-genes-using-gfold)   
        b.    [NOISeq](#b-differentially-expressed-genes-using-noiseq) 
 
@@ -458,39 +457,26 @@ EnTAP/
 
 More information on EnTAP can be found in [EnTAP documentation](https://entap.readthedocs.io/en/v0.9.0-beta/index.html), which has a very comprehensive description.
 
-  
-## 8. Creating An Index   
+   
+## 8. Quantifying gene expression
+
+The next step in our analysis is to quantify gene expression in each of our six samples. In this tutorial we'll use [`kallisto`](https://pachterlab.github.io/kallisto/), a very fast read pseudo-mapper. Without getting into detail, `kallisto` is fast, and referred to as a "pseudo-mapper" because it avoids the hard work of a base-level alignment of reads in favor of finding reads' approximate position in the reference transcriptome. This approximation is good enough for RNA-seq (but not for, e.g. variant calling). 
 
 ### Creating an index using Kallisto   
 
-In this step we will be working in the *index* directory. Before aligning the reads we need to create a index for the created transcoder assembly. We will be using [Kallisto](https://pachterlab.github.io/kallisto/)  to build the index using the following command:
+The first step is to index our reference transcriptome. An index allows possible read positions in the reference to be looked up very quickly. We'll be working in the `08_Counts` directory, and the index script `kallisto_index.sh` can be executed form that directory by entering `sbatch kallisto_index.sh` on the command line. 
 
 ```bash
-module load kallisto/0.44.0
-
-kallisto index -i Eastern_larch_index ../Clustering/centroids.fasta
+kallisto index -i ../05_Clustering/eastern_larch_index ../05_Clustering/centroids.fasta
 ```   
-    
-Arguments used for creating the index file:
-```
-Usage: kallisto index [arguments] FASTA-files
-
-
-Required argument:
--i, --index=STRING          Filename for the kallisto index to be constructed
-
-```  
     
 The full slurm script is called [kallisto_index.sh](/Index/kallisto_index.sh) can be found in the **Index/** folder. This will create a kallisto index of the *centroids.fasta* FASTA file, where it will create the following file:   
 ```
 Index/
 └── Eastern_larch_index
 ```
-    
-   
-    
-## 9. Extraction of Read Counts using Kallisto
-     
+
+### Extraction of Read Counts using Kallisto
 
 In this step we will be working in **Counts/** directory, and will be using the the `kallisto quant` command to run the quantification algorithm. Because of time constraints, moving forward we will only do a pairwise comparison between two samples: Killingworth time points 2 and 3. 
 

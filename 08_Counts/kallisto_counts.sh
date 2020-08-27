@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=kallisto_counts
+#SBATCH --job-name=counts
 #SBATCH -n 1
 #SBATCH -N 1
 #SBATCH -c 8
@@ -35,7 +35,7 @@ kallisto quant \
 	-i ../05_Clustering/centroids.fasta.index \
 	-o ${SAM} \
 	-t 8 \
-	../Quality_Control/trim_${SAM}_R1.fastq.gz ../Quality_Control/trim_${SAM}_R2.fastq.gz
+	../02_Quality_Control/trim_${SAM}_R1.fastq.gz ../02_Quality_Control/trim_${SAM}_R2.fastq.gz
 
 date 
 

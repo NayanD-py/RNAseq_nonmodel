@@ -12,7 +12,7 @@ This repository is a usable, publicly available tutorial for analyzing different
 4. [Identifying the Coding Regions](#4-identifying-the-coding-regions)  
 5. [Determining and Removing Redundant Transcripts](#5-determining-and-removing-redundant-transcripts)
 6. [Evaluating the Assembly](#6-evaluating-the-assembly)
-7. [Functional Annotation](#10-functional-annotation) 
+7. [Functional Annotation](#7-functional-annotation) 
 8. [Creating An Index](#7-creating-an-index)
 9. [Extraction of Read Counts using Kallisto](#8-extraction-of-read-counts-using-kallisto)
 10. [Diffferential Expression](#9-diffferential-expression)  

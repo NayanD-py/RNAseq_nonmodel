@@ -467,59 +467,29 @@ The next step in our analysis is to quantify gene expression in each of our six 
 The first step is to index our reference transcriptome. An index allows possible read positions in the reference to be looked up very quickly. We'll be working in the `08_Counts` directory, and the index script `kallisto_index.sh` can be executed form that directory by entering `sbatch kallisto_index.sh` on the command line. 
 
 ```bash
-kallisto index -i ../05_Clustering/eastern_larch_index ../05_Clustering/centroids.fasta
+kallisto index -i ../05_Clustering/centroids.fasta.index ../05_Clustering/centroids.fasta
 ```   
     
-The full slurm script is called [kallisto_index.sh](/Index/kallisto_index.sh) can be found in the **Index/** folder. This will create a kallisto index of the *centroids.fasta* FASTA file, where it will create the following file:   
-```
-Index/
-└── Eastern_larch_index
-```
 
 ### Extraction of Read Counts using Kallisto
 
-In this step we will be working in **Counts/** directory, and will be using the the `kallisto quant` command to run the quantification algorithm. Because of time constraints, moving forward we will only do a pairwise comparison between two samples: Killingworth time points 2 and 3. 
+Now we can use `kallisto` to quantify gene expression. Again from the `08_Counts` directory, we can run the script `kallisto_counts.sh` by entering `sbatch kallisto_counts.sh` on the command line. 
+
+This script uses the `kallisto quant` module to run the quantification algorithm. Running it on a single sample looks like this:
 
 ```bash
-module load kallisto/0.44.0
+SAM=K21
 
-kallisto quant -i ../Kallisto_Index/Eastern_larch_index \
-        -o K23 \
-        -t 8 \
-        ../Quality_Control/trim_K23_R1.fastq ../Quality_Control/trim_K23_R2.fastq
-
-kallisto quant -i ../Kallisto_Index/Eastern_larch_index \
-        -o K32 \
-        -t 8 \
-        ../Quality_Control/trim_K32_R1.fastq ../Quality_Control/trim_K32_R2.fastq
-
-kallisto quant -i ../Index/Eastern_larch_index \
-        -o U32 \
-        -t 8 \
-        ../Quality_Control/trim_U32_R1.fastq ../Quality_Control/trim_U32_R2.fastq
-
-kallisto quant -i ../Index/Eastern_larch_index \
-        -o U13 \
-        -t 8 \
-        ../Quality_Control/trim_U13_R1.fastq ../Quality_Control/trim_U13_R2.fastq
+kallisto quant \
+  -i ../05_Clustering/centroids.fasta.index \
+  -o ${SAM} \
+  -t 8 \
+  ../02_Quality_Control/trim_${SAM}_R1.fastq.gz ../02_Quality_Control/trim_${SAM}_R2.fastq.gz
 ``` 
-    
-Usage information of the `kallisto quant`:
-```
-Usage: kallisto quant [arguments] FASTQ-files
-
-Required arguments:
--i, --index=STRING            	Filename for the kallisto index to be used for quantification
--o, --output-dir=STRING       Directory to write output to
-
-Optional arguments:
--t, --threads=INT             Number of threads to use (default: 1)
-```   
    
     
-**kallisto** can process either paired-end or single-end reads. The default running mode is paired-end reads and requires a even number of FASTQ files, with pairs given as shown in above example. When running single end reads please check the [kallisto manual](https://pachterlab.github.io/kallisto/manual) for correct parameters. The complete slurm script is called [kallisto_counts.sh](/Counts/kallisto_counts.sh) which is stored in the **Counts/** directory.  
+`kallisto` can process either paired-end or single-end reads. The default running mode is paired-end reads and requires a even number of FASTQ files, with pairs given as shown in above example. We provide the index with `-i` and the number of CPU threads with `-t`. 
   
-
 The quantification algorithm will produce three output files: 
  *  abundance.h5  : HDF5 binary file   
 	This contains run information, abundance estimates, bootstrap estimates and transcript lenght information
@@ -527,8 +497,9 @@ The quantification algorithm will produce three output files:
 	This contains effective length, estimated counts and TPM values  
  *  run_info.json : information on the run  
   
-   
+  
 When you run the above kallisto quantification algorithm, it will produce the following output:  
+
 ```
 Counts/
 ├── U13/

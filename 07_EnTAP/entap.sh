@@ -13,6 +13,22 @@
 
 hostname
 date
+
+##########################################
+## Extract Sequences			## 
+##########################################
+
+# this part of the script extracts the peptide sequences identified by transdecoder (trinity_combine.fasta.transdecoder.pep)
+# for only the sequences in our final clustered reference transcriptome (centroids.fasta)
+
+module load seqtk/1.2
+
+CENTROIDS=../05_Clustering/centroids.fasta
+PEPTIDES=../04_Coding_Regions/trinity_combine.fasta.transdecoder.pep
+
+seqtk subseq $PEPTIDES <(grep -oP "(?<=>).*" $CENTROIDS) >centroids.pep
+ 
+
 ##########################################
 ## EnTap				## 
 ##########################################
@@ -21,7 +37,7 @@ module load diamond/0.9.19
 
 # run EnTAP, flagging bacterial and fungal hits as possible contaminants and favoring hits to Larix (the larch genus)
 EnTAP --runP \
--i ExtractedSq.fasta \
+-i centroids.pep \
 -d /isg/shared/databases/Diamond/RefSeq/plant.protein.faa.97.dmnd \
 -d /isg/shared/databases/Diamond/Uniprot/uniprot_sprot.dmnd \
 --ontology 0  \

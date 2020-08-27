@@ -12,12 +12,12 @@ This repository is a usable, publicly available tutorial for analyzing different
 4. [Identifying the Coding Regions](#4-identifying-the-coding-regions)  
 5. [Determining and Removing Redundant Transcripts](#5-determining-and-removing-redundant-transcripts)
 6. [Evaluating the Assembly](#6-evaluating-the-assembly)
-7. [Creating An Index](#7-creating-an-index)
-8. [Extraction of Read Counts using Kallisto](#8-extraction-of-read-counts-using-kallisto)
-9. [Diffferential Expression](#9-diffferential-expression)  
+7. [EnTAP - Functional Annotation for DE Genes](#10-entap---functional-annotation-for-de-genes) 
+8. [Creating An Index](#7-creating-an-index)
+9. [Extraction of Read Counts using Kallisto](#8-extraction-of-read-counts-using-kallisto)
+10. [Diffferential Expression](#9-diffferential-expression)  
        a.    [Gfold](#a-differentially-expressed-genes-using-gfold)   
        b.    [NOISeq](#b-differentially-expressed-genes-using-noiseq) 
-10. [EnTAP - Functional Annotation for DE Genes](#10-entap---functional-annotation-for-de-genes) 
 
 
 ## 1. Introduction  
@@ -413,8 +413,106 @@ Total length   |    42619973
 Transcript N50  |    407   
 
 
-     
-## 7. Creating An Index   
+## 7. EnTAP - Functional Annotation for DE Genes  
+
+Once the differentially expressed genes have been identified using the Gfold example, we need to annotate the genes to identify the function. We will take the top 10 upregulated genes from the gfold output and will do a quick annotation. In order to run the [**EnTAP**](https://entap.readthedocs.io/en/v0.9.0-beta/index.html) program, we need to provide a peptide sequence of the genes which we want to do the functional annotation.   
+  
+Using the python program called [ExtractSequence.py](/EnTAP/ExtractSequence.py) we will be extracting the top upregulated genes according to the Gfold output file (K32_vs_K23.diff). 
+
+```python 
+module load python/2.7.14
+python ExtractSequence.py ../Gfold/K32_vs_K23.diff ../Coding_Regions/trinity_combine.fasta.transdecoder.pep 10
+``` 
+
+The slurm script is called [Extract_sequence.sh](/EnTAP/Extract_sequence.sh) can be found in the **EnTAP** directory. This will create a FASTA file called *ExtractedSq.fasta* which contains the peptide sequences of the top 10 up regulated genes. 
+```
+EnTAP/
+├── ExtractedSq.fasta
+├── ExtractSequence.py
+└── Extract_sequence.sh
+```
+
+In order to run EnTAP you need to have a configuration file set up in your working directory, where it points to the program paths. We have prepared a *entap_config.txt* file for you and it can be found in the **EnTAP/** directory.
+
+```
+EnTAP/
+├── entap_config.txt
+```
+
+Once we have the fasta file with the protein sequences, and the config file setup, we can run the enTAP program to grab the functional annotations using the following command. The `-c` flags will mark sequences that have hits to bacteria and fungi as possible contaminants, while the `--taxon` flag will favor annotations coming from congenerics in *Larix*. 
+
+```bash
+module load EnTAP/0.9.0-beta
+module load diamond/0.9.19
+
+
+EnTAP --runP \
+-i ExtractedSq.fasta \
+-d /isg/shared/databases/Diamond/RefSeq/plant.protein.faa.97.dmnd \
+-d /isg/shared/databases/Diamond/Uniprot/uniprot_sprot.dmnd \
+--ontology 0  \
+--threads 8 \
+-c bacteria \
+-c fungi \
+--taxon Larix
+```
+   
+   
+Usage of the entap program:
+```
+Required Flags:
+--runP      with a protein input, frame selection will not be ran and annotation will be executed with protein sequences (blastp)
+-i          Path to the transcriptome file (either nucleotide or protein)
+-d          Specify up to 5 DIAMOND indexed (.dmnd) databases to run similarity search against
+
+Optional:
+-threads    Number of threads
+--ontology  0 - EggNOG (default)
+```  
+
+The full script for slurm scheduler is called [entap.sh](/EnTAP/entap.sh) can be found in the EnTAP directory. Once the job is done it will create a folder called “outfiles” which will contain the output of the program.   
+```
+EnTAP/
+├── entap_config.txt
+├── entap_outfiles/
+│   ├── debug_2019Y11M15D-14h33m38s.txt
+│   ├── log_file_2019Y11M15D-14h33m38s.txt
+│   ├── final_results/
+|   │   ├── final_annotated.faa
+│   │   ├── final_annotated.fnn
+│   │   ├── final_annotations_contam_lvl0.faa
+│   │   ├── final_annotations_contam_lvl0.fnn
+│   │   ├── final_annotations_contam_lvl0.tsv
+│   │   ├── final_annotations_contam_lvl3.tsv
+│   │   ├── final_annotations_contam_lvl4.tsv
+│   │   ├── final_annotations_lvl0.faa
+│   │   ├── final_annotations_lvl0.fnn
+│   │   ├── final_annotations_lvl0.tsv
+│   │   ├── final_annotations_lvl3.tsv
+│   │   ├── final_annotations_lvl4.tsv
+│   │   ├── final_annotations_no_contam_lvl0.faa
+│   │   ├── final_annotations_no_contam_lvl0.fnn
+│   │   ├── final_annotations_no_contam_lvl0.tsv
+│   │   ├── final_annotations_no_contam_lvl3.tsv
+│   │   ├── final_annotations_no_contam_lvl4.tsv
+│   │   ├── final_unannotated.faa
+│   │   └── final_unannotated.fnn
+│   ├── ontology/
+│   │   └── EggNOG_DMND/
+│   ├── similarity_search/
+│   │   └── DIAMOND
+│   └── transcriptomes/
+├── entap.sh
+├── ExtractedSq.fasta
+├── ExtractSequence.py
+└── Extract_sequence.sh
+```
+
+
+More information on EnTAP can be found in [EnTAP documentation](https://entap.readthedocs.io/en/v0.9.0-beta/index.html), which has a very comprihensive discription.
+
+  
+## 8. Creating An Index   
 
 ### Creating an index using Kallisto   
 
@@ -444,7 +542,7 @@ Index/
     
    
     
-## 8. Extraction of Read Counts using Kallisto
+## 9. Extraction of Read Counts using Kallisto
      
 
 In this step we will be working in **Counts/** directory, and will be using the the `kallisto quant` command to run the quantification algorithm. Because of time constraints, moving forward we will only do a pairwise comparison between two samples: Killingworth time points 2 and 3. 
@@ -529,7 +627,7 @@ TRINITY_DN21012_c2_g1_i3.p1	10839	10681.3	172	1.05472
 ```
 
 
-## 9. Diffferential Expression 
+## 10. Diffferential Expression 
 
 In this section we will show you two methods of finding the differentially expressed genes namely **Gfold** and **NOISeq**. 
 Where as Gfold and NOISeq both can used to find differentially expressed genes when there are no-replicates as well as replicates avaliable. In this tutorial we will use Gfold, to find DE genes, when you do not have replicates and next we will use the NOISeq, show an example when you have replicates. 
@@ -929,100 +1027,4 @@ write.csv(mynoiseq.bio.deg_down, file = paste0(csv_out, "/", prefix, "_DEgenes_d
  
 
 
-## 10. EnTAP - Functional Annotation for DE Genes  
 
-Once the differentially expressed genes have been identified using the Gfold example, we need to annotate the genes to identify the function. We will take the top 10 upregulated genes from the gfold output and will do a quick annotation. In order to run the [**EnTAP**](https://entap.readthedocs.io/en/v0.9.0-beta/index.html) program, we need to provide a peptide sequence of the genes which we want to do the functional annotation.   
-  
-Using the python program called [ExtractSequence.py](/EnTAP/ExtractSequence.py) we will be extracting the top upregulated genes according to the Gfold output file (K32_vs_K23.diff). 
-
-```python 
-module load python/2.7.14
-python ExtractSequence.py ../Gfold/K32_vs_K23.diff ../Coding_Regions/trinity_combine.fasta.transdecoder.pep 10
-``` 
-
-The slurm script is called [Extract_sequence.sh](/EnTAP/Extract_sequence.sh) can be found in the **EnTAP** directory. This will create a FASTA file called *ExtractedSq.fasta* which contains the peptide sequences of the top 10 up regulated genes. 
-```
-EnTAP/
-├── ExtractedSq.fasta
-├── ExtractSequence.py
-└── Extract_sequence.sh
-```
-
-In order to run EnTAP you need to have a configuration file set up in your working directory, where it points to the program paths. We have prepared a *entap_config.txt* file for you and it can be found in the **EnTAP/** directory.
-
-```
-EnTAP/
-├── entap_config.txt
-```
-
-Once we have the fasta file with the protein sequences, and the config file setup, we can run the enTAP program to grab the functional annotations using the following command. The `-c` flags will mark sequences that have hits to bacteria and fungi as possible contaminants, while the `--taxon` flag will favor annotations coming from congenerics in *Larix*. 
-
-```bash
-module load EnTAP/0.9.0-beta
-module load diamond/0.9.19
-
-
-EnTAP --runP \
--i ExtractedSq.fasta \
--d /isg/shared/databases/Diamond/RefSeq/plant.protein.faa.97.dmnd \
--d /isg/shared/databases/Diamond/Uniprot/uniprot_sprot.dmnd \
---ontology 0  \
---threads 8 \
--c bacteria \
--c fungi \
---taxon Larix
-```
-   
-   
-Usage of the entap program:
-```
-Required Flags:
---runP      with a protein input, frame selection will not be ran and annotation will be executed with protein sequences (blastp)
--i          Path to the transcriptome file (either nucleotide or protein)
--d          Specify up to 5 DIAMOND indexed (.dmnd) databases to run similarity search against
-
-Optional:
--threads    Number of threads
---ontology  0 - EggNOG (default)
-```  
-
-The full script for slurm scheduler is called [entap.sh](/EnTAP/entap.sh) can be found in the EnTAP directory. Once the job is done it will create a folder called “outfiles” which will contain the output of the program.   
-```
-EnTAP/
-├── entap_config.txt
-├── entap_outfiles/
-│   ├── debug_2019Y11M15D-14h33m38s.txt
-│   ├── log_file_2019Y11M15D-14h33m38s.txt
-│   ├── final_results/
-|   │   ├── final_annotated.faa
-│   │   ├── final_annotated.fnn
-│   │   ├── final_annotations_contam_lvl0.faa
-│   │   ├── final_annotations_contam_lvl0.fnn
-│   │   ├── final_annotations_contam_lvl0.tsv
-│   │   ├── final_annotations_contam_lvl3.tsv
-│   │   ├── final_annotations_contam_lvl4.tsv
-│   │   ├── final_annotations_lvl0.faa
-│   │   ├── final_annotations_lvl0.fnn
-│   │   ├── final_annotations_lvl0.tsv
-│   │   ├── final_annotations_lvl3.tsv
-│   │   ├── final_annotations_lvl4.tsv
-│   │   ├── final_annotations_no_contam_lvl0.faa
-│   │   ├── final_annotations_no_contam_lvl0.fnn
-│   │   ├── final_annotations_no_contam_lvl0.tsv
-│   │   ├── final_annotations_no_contam_lvl3.tsv
-│   │   ├── final_annotations_no_contam_lvl4.tsv
-│   │   ├── final_unannotated.faa
-│   │   └── final_unannotated.fnn
-│   ├── ontology/
-│   │   └── EggNOG_DMND/
-│   ├── similarity_search/
-│   │   └── DIAMOND
-│   └── transcriptomes/
-├── entap.sh
-├── ExtractedSq.fasta
-├── ExtractSequence.py
-└── Extract_sequence.sh
-```
-
-
-More information on EnTAP can be found in [EnTAP documentation](https://entap.readthedocs.io/en/v0.9.0-beta/index.html), which has a very comprihensive discription.

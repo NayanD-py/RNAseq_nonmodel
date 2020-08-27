@@ -1,5 +1,5 @@
 # THIS TUTORIAL IS UNDER CONSTRUCTION
-  the scripts are broken after Step 6, evaluating the assembly
+  the scripts are broken after Step 8, quantifying gene expression
 
 # RNA Sequence Analysis for Non Model Species Eastern larch (Tamarack)  
   
@@ -497,7 +497,7 @@ The quantification algorithm will produce three output files:
 	This contains effective length, estimated counts and TPM values  
  *  run_info.json : information on the run  
   
-  
+
 When you run the above kallisto quantification algorithm, it will produce the following output:  
 
 ```

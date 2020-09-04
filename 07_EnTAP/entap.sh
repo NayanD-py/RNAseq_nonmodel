@@ -23,10 +23,11 @@ date
 
 module load seqtk/1.2
 
-grep -oP "(?<=>).*" $CENTROIDS >names.txt
 
 CENTROIDS=../05_Clustering/centroids.fasta
 PEPTIDES=../04_Coding_Regions/trinity_combine.fasta.transdecoder.pep
+
+grep -oP "(?<=>).*" $CENTROIDS >names.txt
 
 seqtk subseq $PEPTIDES names.txt >centroids.pep
  

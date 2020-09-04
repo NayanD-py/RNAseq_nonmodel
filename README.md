@@ -460,9 +460,9 @@ More information on EnTAP can be found in [EnTAP documentation](https://entap.re
    
 ## 8. Quantifying gene expression
 
-The next step in our analysis is to quantify gene expression in each of our six samples. In this tutorial we'll use [`kallisto`](https://pachterlab.github.io/kallisto/), a very fast read pseudo-mapper. Without getting into detail, `kallisto` is fast, and referred to as a "pseudo-mapper" because it avoids the hard work of a base-level alignment of reads in favor of finding reads' approximate position in the reference transcriptome. This approximation is good enough for RNA-seq (but not for, e.g. variant calling). 
+The next step in our analysis is to quantify gene expression in each of our six samples. In this tutorial we'll use [`kallisto`](https://pachterlab.github.io/kallisto/), a very fast read pseudo-mapper. Without getting into detail, `kallisto` is fast, and referred to as a "pseudo-mapper" because it avoids the hard work of a base-level alignment of reads in favor of finding reads' approximate position in the reference transcriptome. This approximation is good enough for RNA-seq (but not for, e.g. variant calling). `kallisto` will produce estimated counts of reads mapping to transcripts, and estimated transcript abundances, normalized for transcript length. We'll use the estimated counts in later analyses. 
 
-### Creating an index using Kallisto   
+### Creating an index  
 
 The first step is to index our reference transcriptome. An index allows possible read positions in the reference to be looked up very quickly. We'll be working in the `08_Counts` directory, and the index script `kallisto_index.sh` can be executed form that directory by entering `sbatch kallisto_index.sh` on the command line. 
 
@@ -471,7 +471,7 @@ kallisto index -i ../05_Clustering/centroids.fasta.index ../05_Clustering/centro
 ```   
     
 
-### Extraction of Read Counts using Kallisto
+### Counting reads mapping to transcripts
 
 Now we can use `kallisto` to quantify gene expression. Again from the `08_Counts` directory, we can run the script `kallisto_counts.sh` by entering `sbatch kallisto_counts.sh` on the command line. 
 

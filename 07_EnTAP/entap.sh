@@ -41,7 +41,7 @@ module load diamond/0.9.19
 # run EnTAP, flagging bacterial and fungal hits as possible contaminants and favoring hits to Larix (the larch genus)
 EnTAP --runP \
 -i centroids.pep \
--d /isg/shared/databases/Diamond/RefSeq/plant.protein.faa.97.dmnd \
+-d /isg/shared/databases/Diamond/RefSeq/complete.protein.faa.202.dmnd \
 -d /isg/shared/databases/Diamond/Uniprot/uniprot_sprot.dmnd \
 --ontology 0  \
 --threads 8 \

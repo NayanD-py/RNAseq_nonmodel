@@ -14,9 +14,10 @@ This repository is a usable, publicly available tutorial for analyzing different
 6. [Evaluating the Assembly](#6-evaluating-the-assembly)
 7. [Functional Annotation](#7-functional-annotation) 
 8. [Quantifying Gene Expression](#8-quantifying-gene-expression)
-9. [Diffferential Expression](#9-diffferential-expression)  
-       a.    [Gfold](#a-differentially-expressed-genes-using-gfold)   
-       b.    [NOISeq](#b-differentially-expressed-genes-using-noiseq) 
+9. [Excluding contaminant genes](#9-excluding-contaminant-genes)
+10. [Diffferential Expression](#10-diffferential-expression)  
+       a.    [NOISeq](#a-differentially-expressed-genes-using-noiseq) 
+       b.    [Gfold](#b-differentially-expressed-genes-using-gfold)   
 
 
 ## 1. Introduction  
@@ -498,29 +499,7 @@ The quantification algorithm will produce three output files:
  *  run_info.json : information on the run  
   
 
-When you run the above kallisto quantification algorithm, it will produce the following output:  
-
-```
-Counts/
-├── U13/
-│   ├── abundance.h5
-│   ├── abundance.tsv
-│   └── run_info.json
-├── U32/
-│   ├── abundance.h5
-│   ├── abundance.tsv
-│   └── run_info.json
-├── K23/
-│   ├── abundance.h5
-│   ├── abundance.tsv
-│   └── run_info.json
-└── K32/
-    ├── abundance.h5
-    ├── abundance.tsv
-    └── run_info.json
-```
-
-Now if you look at the first few lines in the _abundance.tsv_ file using the `head` command. We can see that, it has five columns which are _geneID_, _gene length_, _effective gene length_, _estimated counts_ and _tpm_ values.  
+Now if you look at the first few lines in the _abundance.tsv_ file using the `head` command. We can see that it has five columns: _geneID_, _gene length_, _effective gene length_, _estimated counts_ and _tpm_.  
 
 ```
 target_id	length	eff_length	est_counts	tpm
@@ -529,105 +508,17 @@ TRINITY_DN27054_c1_g6_i1.p1	11508	11350.3	183.401	1.05834
 TRINITY_DN26839_c0_g2_i1.p1	10935	10777.3	16.3293	0.099241
 TRINITY_DN21012_c2_g1_i3.p1	10839	10681.3	172	1.05472
 ```
+## 8. Excluding Contaminant Genes
+
 
 
 ## 10. Diffferential Expression 
 
-In this section we will show you two methods of finding the differentially expressed genes namely **Gfold** and **NOISeq**. 
+In this section we will demonstrate two methods of identifying differentially expressed genes: `Gfold` and `NOISeq`, but now that you have the count data, you could bring that to many other methods. To learn how to use `DESeq2`, for example, you could switch over to one of our [other tutorials](https://github.com/CBC-UCONN/RNA-seq-with-reference-genome-and-annotation#7-pairwise-differential-expression-with-counts-in-r-using-deseq2) and follow that from here.
+
 Where as Gfold and NOISeq both can used to find differentially expressed genes when there are no-replicates as well as replicates avaliable. In this tutorial we will use Gfold, to find DE genes, when you do not have replicates and next we will use the NOISeq, show an example when you have replicates. 
 
-### a. Differentially Expressed Genes using Gfold   
-
-   
-Here we are trying to get differentially expressed genes between two conditions with only a single replicate for each condition. In such situations [Gfold](https://zhanglab.tongji.edu.cn/softwares/GFOLD/index.html) is very useful. Gfold uses a Bayesian model to rank genes according to estimated fold change in expression in across treatments. The Gfold estimate of fold change balances the size of the fold change against its significance, reducing the noise from genes with low read counts. 
- 
-In order to get fold change using Gfold program, you need to provide a count file in a particular format. For the Gfold program the count file should contain 5 columns, where it should contain _GeneSymbol_, _GeneName_, _Read Count_, _Gene exon length_ and _RPKM_. In this input most important columns are _Gene Symbol_ and _Read Count_ information.   
-  
-We will use the kallisto generated _abundance.tsv_ file and reformat it, so it will contain the fields which Gfold program needs as its input. For reformating you can use any programing language that you like. But in here we will be using `awk` to manipulate these columns. AWK is a very powerful language which allows you to get useful information from text files.  
-   
-```awk
-awk '{print $1 "\t" $1 "\t" $4 "\t" $2 "\t" $5 }' ../Counts/K23/abundance.tsv > K23.read_cnt
-awk '{print $1 "\t" $1 "\t" $4 "\t" $2 "\t" $5 }' ../Counts/K32/abundance.tsv > K32.read_cnt
-```  
-
-You can run this command in a interative session or can run the [count2gfoldCounts.sh](/Gfold/count2gfoldCounts.sh) script using shell in a interative session. 
-```bash
-sh count2gfoldCounts.sh
-```  
-
-This will produce counts files which are in Gfold format.  
-```
-Gfold/
-├── K23.read_cnt
-└── K32.read_cnt
-```   
-   
-Gfold program does not take the header row so either you have to delete the first row or comment out the header before you run the program. 
-Now if you look at any of these files it will now contain five columns as follows:
-```
-TRINITY_DN27913_c0_g1_i1.p3	TRINITY_DN27913_c0_g1_i1.p3	3561	13230	12.3338
-TRINITY_DN27054_c1_g6_i1.p1	TRINITY_DN27054_c1_g6_i1.p1	3895.81	11508	15.5417
-TRINITY_DN26839_c0_g2_i1.p1	TRINITY_DN26839_c0_g2_i1.p1	1220.95	10935	5.12987
-TRINITY_DN21012_c2_g1_i3.p1	TRINITY_DN21012_c2_g1_i3.p1	3349	10839	14.1975
-TRINITY_DN17708_c0_g1_i3.p1	TRINITY_DN17708_c0_g1_i3.p1	967	9297	4.79158
-```
-
-### Using Gfold get differentially expressed genes  
-
-Now since we have the counts files in the correct format, we will run the Gfold using the following command. We will be using the K23.read_cnt and K32.read_cnt as input files.
-```bash
-module load gfold/1.1.4
-
-gfold diff -s1 K32 -s2 K23 -suf .read_cnt -o K32_vs_K23.diff
-``` 
-
-Usage information of the gfold:
-```
-gfold diff [options]
-
--s1      sample-1
--s2      sample-2
--o	 output file name
--suf	 input files extention
-
-OPTIONAL FLAGS:
--acc <T/F>	When no replicate is available, whether to use accurate method to calculate GFOLD value. T stands for 	accurate which depends on sequencing depth and slower, F stands for MCMC. Default T. For job diff only.
-
--sc <num>	The significant cutoff for fold change. Default 0.01. For job diff only.
-
--norm <Count/DESeq/NO>  The way to do normalization. 'Count' stands for normalization by total number of mapped reads. 'DESeq' stands for the normalization proposed by DESeq. 'NO' stands for no normalization. You can also specifiy a list of normalization constant separated by commas. E.g. 1.2,2.1,1.0,2.0. Note that the number of constants should be the same as the total number of samples (group1 and group2) and the order should be for -s1 followed by for -s2. GFOLD using normalization constants not by directly multiplication (scaling up) nor division (scaling down). The normalization constants will be built into the model. In the model, division or multiplication has no difference. Default 'DESeq'.
-```
-   
-The complete slurm script is called [gfold.sh](/Gfold/gfold.sh) which is stored in the **Gfold/** directory. Running Gfold will generate the following files, which contains the fold change value between the two conditions.
-```
-Gfold/
-├── K32_vs_K23.diff
-└── K32_vs_K23.diff.ext
-```   
-   
-The Gfold value can be considered a log2-fold change value, where positive/negative value will indicate whether a gene is up/down regulated. The first few lines in the *K32_vs_K23.diff* will be like:  
-
-```
-#GeneSymbol     GeneName        GFOLD(0.01)     E-FDR   log2fdc 1stRPKM 2ndRPKM
-TRINITY_DN27913_c0_g1_i1.p3     TRINITY_DN27913_c0_g1_i1.p3     2.49054 1       2.74244 2.33862 22.549
-TRINITY_DN27054_c1_g6_i1.p1     TRINITY_DN27054_c1_g6_i1.p1     2.53847 1       2.78281 2.8605  28.3545
-TRINITY_DN26839_c0_g2_i1.p1     TRINITY_DN26839_c0_g2_i1.p1     3.81393 1       4.54498 0.263204        9.34665
-TRINITY_DN21012_c2_g1_i3.p1     TRINITY_DN21012_c2_g1_i3.p1     2.4016  1       2.65392 2.8545  25.8846
-TRINITY_DN17708_c0_g1_i3.p1     TRINITY_DN17708_c0_g1_i3.p1     2.27485 1       2.74287 0.890033        8.71362
-```  
-The GFOLD output has 7 coloumns 
-1. **GeneSymbol** Information on gene symbol.
-2. **GeneName** Information on gene name.
-3. **GFOLD** column provides fold change values in log2 format and can be used to obtain a biological meaningful ranking of genes. Any gene that passes the significance cutoff (p-value) of 0.01 and shows 2 or more fold change in expression have values indicated against them.  Genes not satisfying these 2 criterias have value=0 against them. Values are calculated as log2(s2/s1).  The significance cut off can be set by using -sc flag. Since the values are in log2 format, the cut off starts at +1 for upregulated genes and -1 for downregulated genes.  Genes with values greater than +1 (1.2435, 2.4982, 3.53474 etc) have 2 fold increase in expression in s2 samples wheres values less than -1 (-1.6584, -2.0078, -4.6768 etc) will have 2 fold lower or lesser expression in s2 compared to s1.
-4. **E-FDR** column represents the FDR values calculated to correct for multiple testing.  In absence of replicates the value is set to 1 as seen above.  This column will have other values if we have replicates in our study.
-5. **log2fc** column have log2 fold change obtained from s2/s1 for all genes even for those who doesnot pass the significance cut off and have lower or no change in expression between conditions. These values are slightly different from GFOLD because fold change is based on the sampled expression level from the posterior distribution bt taking in account gene lengths.
-6. **1-RPKM** represent RPKM values for genes in s1 sample.
-7. **2-RPKM** represent RPKM values for genes in s2 sample.
-
-
-
-
-### b. Differentially Expressed Genes using NOISeq  
+### a. Differentially Expressed Genes using NOISeq  
 
 Another program which is useful in finding differentially expressed genes when there are no replicates is the R package [NOISeq](https://bioconductor.org/packages/release/bioc/html/NOISeq.html). It can be used to get exploratory plots to evaluate count distribution, types of detected features, and differential expression between two conditions.   
   
@@ -922,6 +813,97 @@ prefix = "T2_T3_noiseq"
 write.csv(mynoiseq.bio.deg_up, file = paste0(csv_out, "/" ,prefix, "_DEgenes_up.csv"))
 write.csv(mynoiseq.bio.deg_down, file = paste0(csv_out, "/", prefix, "_DEgenes_down.csv"))
 ``` 
+
+### b. Differentially Expressed Genes using Gfold   
+
+   
+Here we are trying to get differentially expressed genes between two conditions with only a single replicate for each condition. In such situations [Gfold](https://zhanglab.tongji.edu.cn/softwares/GFOLD/index.html) is very useful. Gfold uses a Bayesian model to rank genes according to estimated fold change in expression in across treatments. The Gfold estimate of fold change balances the size of the fold change against its significance, reducing the noise from genes with low read counts. 
+ 
+In order to get fold change using Gfold program, you need to provide a count file in a particular format. For the Gfold program the count file should contain 5 columns, where it should contain _GeneSymbol_, _GeneName_, _Read Count_, _Gene exon length_ and _RPKM_. In this input most important columns are _Gene Symbol_ and _Read Count_ information.   
+  
+We will use the kallisto generated _abundance.tsv_ file and reformat it, so it will contain the fields which Gfold program needs as its input. For reformating you can use any programing language that you like. But in here we will be using `awk` to manipulate these columns. AWK is a very powerful language which allows you to get useful information from text files.  
+   
+```awk
+awk '{print $1 "\t" $1 "\t" $4 "\t" $2 "\t" $5 }' ../Counts/K23/abundance.tsv > K23.read_cnt
+awk '{print $1 "\t" $1 "\t" $4 "\t" $2 "\t" $5 }' ../Counts/K32/abundance.tsv > K32.read_cnt
+```  
+
+You can run this command in a interative session or can run the [count2gfoldCounts.sh](/Gfold/count2gfoldCounts.sh) script using shell in a interative session. 
+```bash
+sh count2gfoldCounts.sh
+```  
+
+This will produce counts files which are in Gfold format.  
+```
+Gfold/
+├── K23.read_cnt
+└── K32.read_cnt
+```   
+   
+Gfold program does not take the header row so either you have to delete the first row or comment out the header before you run the program. 
+Now if you look at any of these files it will now contain five columns as follows:
+```
+TRINITY_DN27913_c0_g1_i1.p3	TRINITY_DN27913_c0_g1_i1.p3	3561	13230	12.3338
+TRINITY_DN27054_c1_g6_i1.p1	TRINITY_DN27054_c1_g6_i1.p1	3895.81	11508	15.5417
+TRINITY_DN26839_c0_g2_i1.p1	TRINITY_DN26839_c0_g2_i1.p1	1220.95	10935	5.12987
+TRINITY_DN21012_c2_g1_i3.p1	TRINITY_DN21012_c2_g1_i3.p1	3349	10839	14.1975
+TRINITY_DN17708_c0_g1_i3.p1	TRINITY_DN17708_c0_g1_i3.p1	967	9297	4.79158
+```
+
+### Using Gfold get differentially expressed genes  
+
+Now since we have the counts files in the correct format, we will run the Gfold using the following command. We will be using the K23.read_cnt and K32.read_cnt as input files.
+```bash
+module load gfold/1.1.4
+
+gfold diff -s1 K32 -s2 K23 -suf .read_cnt -o K32_vs_K23.diff
+``` 
+
+Usage information of the gfold:
+```
+gfold diff [options]
+
+-s1      sample-1
+-s2      sample-2
+-o	 output file name
+-suf	 input files extention
+
+OPTIONAL FLAGS:
+-acc <T/F>	When no replicate is available, whether to use accurate method to calculate GFOLD value. T stands for 	accurate which depends on sequencing depth and slower, F stands for MCMC. Default T. For job diff only.
+
+-sc <num>	The significant cutoff for fold change. Default 0.01. For job diff only.
+
+-norm <Count/DESeq/NO>  The way to do normalization. 'Count' stands for normalization by total number of mapped reads. 'DESeq' stands for the normalization proposed by DESeq. 'NO' stands for no normalization. You can also specifiy a list of normalization constant separated by commas. E.g. 1.2,2.1,1.0,2.0. Note that the number of constants should be the same as the total number of samples (group1 and group2) and the order should be for -s1 followed by for -s2. GFOLD using normalization constants not by directly multiplication (scaling up) nor division (scaling down). The normalization constants will be built into the model. In the model, division or multiplication has no difference. Default 'DESeq'.
+```
+   
+The complete slurm script is called [gfold.sh](/Gfold/gfold.sh) which is stored in the **Gfold/** directory. Running Gfold will generate the following files, which contains the fold change value between the two conditions.
+```
+Gfold/
+├── K32_vs_K23.diff
+└── K32_vs_K23.diff.ext
+```   
+   
+The Gfold value can be considered a log2-fold change value, where positive/negative value will indicate whether a gene is up/down regulated. The first few lines in the *K32_vs_K23.diff* will be like:  
+
+```
+#GeneSymbol     GeneName        GFOLD(0.01)     E-FDR   log2fdc 1stRPKM 2ndRPKM
+TRINITY_DN27913_c0_g1_i1.p3     TRINITY_DN27913_c0_g1_i1.p3     2.49054 1       2.74244 2.33862 22.549
+TRINITY_DN27054_c1_g6_i1.p1     TRINITY_DN27054_c1_g6_i1.p1     2.53847 1       2.78281 2.8605  28.3545
+TRINITY_DN26839_c0_g2_i1.p1     TRINITY_DN26839_c0_g2_i1.p1     3.81393 1       4.54498 0.263204        9.34665
+TRINITY_DN21012_c2_g1_i3.p1     TRINITY_DN21012_c2_g1_i3.p1     2.4016  1       2.65392 2.8545  25.8846
+TRINITY_DN17708_c0_g1_i3.p1     TRINITY_DN17708_c0_g1_i3.p1     2.27485 1       2.74287 0.890033        8.71362
+```  
+The GFOLD output has 7 coloumns 
+1. **GeneSymbol** Information on gene symbol.
+2. **GeneName** Information on gene name.
+3. **GFOLD** column provides fold change values in log2 format and can be used to obtain a biological meaningful ranking of genes. Any gene that passes the significance cutoff (p-value) of 0.01 and shows 2 or more fold change in expression have values indicated against them.  Genes not satisfying these 2 criterias have value=0 against them. Values are calculated as log2(s2/s1).  The significance cut off can be set by using -sc flag. Since the values are in log2 format, the cut off starts at +1 for upregulated genes and -1 for downregulated genes.  Genes with values greater than +1 (1.2435, 2.4982, 3.53474 etc) have 2 fold increase in expression in s2 samples wheres values less than -1 (-1.6584, -2.0078, -4.6768 etc) will have 2 fold lower or lesser expression in s2 compared to s1.
+4. **E-FDR** column represents the FDR values calculated to correct for multiple testing.  In absence of replicates the value is set to 1 as seen above.  This column will have other values if we have replicates in our study.
+5. **log2fc** column have log2 fold change obtained from s2/s1 for all genes even for those who doesnot pass the significance cut off and have lower or no change in expression between conditions. These values are slightly different from GFOLD because fold change is based on the sampled expression level from the posterior distribution bt taking in account gene lengths.
+6. **1-RPKM** represent RPKM values for genes in s1 sample.
+7. **2-RPKM** represent RPKM values for genes in s2 sample.
+
+
+
 
 
 

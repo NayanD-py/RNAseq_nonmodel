@@ -18,7 +18,7 @@ date
 ##########################################
 module load gfold/1.1.4 
 
-gfold diff -s1 K32 -s2 K23 -suf .read_cnt -o K32_vs_K23.diff
+gfold diff -s1 K21 -s2 K31 -suf .read_cnt -o K21_vs_K31.diff
 
 date 
 

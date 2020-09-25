@@ -29,7 +29,7 @@ PEPTIDES=../04_Coding_Regions/trinity_combine.fasta.transdecoder.pep
 
 grep -oP "(?<=>).*" $CENTROIDS >names.txt
 
-seqtk subseq $PEPTIDES names.txt >centroids.pep
+seqtk subseq $PEPTIDES names.txt | sed 's/ .*//' >centroids.pep
  
 
 ##########################################

@@ -36,7 +36,7 @@ seqtk subseq $PEPTIDES names.txt | sed 's/ .*//' >centroids.pep
 ## EnTap				## 
 ##########################################
 module load EnTAP/0.9.0-beta
-module load diamond/0.9.19
+module load diamond/0.9.36
 
 # run EnTAP, flagging bacterial and fungal hits as possible contaminants and favoring hits to Larix (the larch genus)
 EnTAP --runP \

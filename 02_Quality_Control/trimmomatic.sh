@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=Trimommatic
+#SBATCH --job-name=Trimmomatic
 #SBATCH -n 1
 #SBATCH -N 1
 #SBATCH -c 4

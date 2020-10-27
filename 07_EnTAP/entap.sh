@@ -43,6 +43,7 @@ EnTAP --runP \
 -i centroids.pep \
 -d /isg/shared/databases/Diamond/RefSeq/complete.protein.faa.202.dmnd \
 -d /isg/shared/databases/Diamond/Uniprot/uniprot_sprot.dmnd \
+-d /isg/shared/databases/Diamond/ntnr/nr_protein.202.dmnd \
 --ontology 0  \
 --threads 8 \
 -c bacteria \

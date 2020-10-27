@@ -22,23 +22,23 @@ mkdir -p ${DIR}_fastqc
 
 module load fastqc/0.11.7
 SAM=K21
-fastqc --outdir ./${DIR}_fastqc/ ../01_Raw_Reads/${SAM}_R1.fastq.gz ../01_Raw_Reads/${SAM}_R2.fastq.gz
+fastqc --threads 4 --outdir ./${DIR}_fastqc/ ../01_Raw_Reads/${SAM}_R1.fastq.gz ../01_Raw_Reads/${SAM}_R2.fastq.gz
 SAM=K22
-fastqc --outdir ./${DIR}_fastqc/ ../01_Raw_Reads/${SAM}_R1.fastq.gz ../01_Raw_Reads/${SAM}_R2.fastq.gz
+fastqc --threads 4 --outdir ./${DIR}_fastqc/ ../01_Raw_Reads/${SAM}_R1.fastq.gz ../01_Raw_Reads/${SAM}_R2.fastq.gz
 SAM=K23
-fastqc --outdir ./${DIR}_fastqc/ ../01_Raw_Reads/${SAM}_R1.fastq.gz ../01_Raw_Reads/${SAM}_R2.fastq.gz
+fastqc --threads 4 --outdir ./${DIR}_fastqc/ ../01_Raw_Reads/${SAM}_R1.fastq.gz ../01_Raw_Reads/${SAM}_R2.fastq.gz
 SAM=K31
-fastqc --outdir ./${DIR}_fastqc/ ../01_Raw_Reads/${SAM}_R1.fastq.gz ../01_Raw_Reads/${SAM}_R2.fastq.gz
+fastqc --threads 4 --outdir ./${DIR}_fastqc/ ../01_Raw_Reads/${SAM}_R1.fastq.gz ../01_Raw_Reads/${SAM}_R2.fastq.gz
 SAM=K32
-fastqc --outdir ./${DIR}_fastqc/ ../01_Raw_Reads/${SAM}_R1.fastq.gz ../01_Raw_Reads/${SAM}_R2.fastq.gz
+fastqc --threads 4 --outdir ./${DIR}_fastqc/ ../01_Raw_Reads/${SAM}_R1.fastq.gz ../01_Raw_Reads/${SAM}_R2.fastq.gz
 SAM=K33
-fastqc --outdir ./${DIR}_fastqc/ ../01_Raw_Reads/${SAM}_R1.fastq.gz ../01_Raw_Reads/${SAM}_R2.fastq.gz
+fastqc --threads 4 --outdir ./${DIR}_fastqc/ ../01_Raw_Reads/${SAM}_R1.fastq.gz ../01_Raw_Reads/${SAM}_R2.fastq.gz
 
 
 #################################################################
 # MULTIQC of raw reads 
 #################################################################
-module load MultiQC/1.8
+module load MultiQC/1.9
 
 mkdir -p ${DIR}_multiqc
 multiqc --outdir ${DIR}_multiqc ./${DIR}_fastqc/

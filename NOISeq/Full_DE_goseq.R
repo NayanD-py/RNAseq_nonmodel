@@ -5,7 +5,7 @@
 # The purpose of this script is to read in the count data and
 # the transcript annotations, filter out transcripts that are
 # likely to be contaminants, and do a DE and GO enrichment. 
-# We'll use NOISeq and DESeq2, and write out data to be analyzed
+# We'll use DESeq2 and NOISeq and write out data to be analyzed
 # using GFOLD. 
 
 

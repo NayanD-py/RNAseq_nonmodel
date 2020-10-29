@@ -14,11 +14,10 @@
 #################################################
 
 library(tidyverse)
-library(NOISeq)
 library(DESeq2)
 library(pheatmap)
 library(ggrepel)
-
+library(NOISeq)
 
 #################################################
 # Set some directories for input/output files
@@ -27,7 +26,7 @@ library(ggrepel)
 list.files()
 
 #Set directory paths to working directory
-count_dir <- "08_Counts" # or appropriate path to the counts 
+count_dir <- "../08_Counts" # or appropriate path to the counts 
 
 
 #################################################
@@ -51,10 +50,13 @@ for (i in count_files) {
   # read file i as a data frame
   f <- read.table(i, sep = "\t", header = TRUE)[,c(1,4)]
 
-  # rename the columns
-  colnames(f) <- c("gene_id", substr(i, 11, 13))
+  # extract the sample ID from the file name:
+  sam <- str_extract(i,regex("K.."))
 
-  #if the counts is empty just copy the f to m
+  # rename the columns
+  colnames(f) <- c("gene_id", sam)
+
+  #if the counts object is empty just copy the f to m
   if(length(co) == 0){
     co <- f
     
@@ -84,14 +86,14 @@ names(mylength) <- df_length[,1]
 
 # Here we read in the table containing our gene annotations from EnTAP
   # the sep, quote, and comment.char options ensure this complex table is parsed correctly
-ann <- read.table("final_annotations_lvl3.tsv",header=TRUE, sep="\t", quote="", comment.char="")
+ann <- read.table("../07_EnTAP/final_annotations_lvl3.tsv.gz",header=TRUE, sep="\t", quote="", comment.char="")
 
 # merge the counts data frame with the annotations
 tab <- merge(co, ann, by.x = "gene_id", by.y = "Query.Sequence")
 
 # EnTAP flags possible contaminant transcripts, but leaves the field blank if
-# it does not find a hit for the transcript, change the blank to "U" for "Unknown"
-tab[tab$Contaminant=="","Contaminant"] <- "U"
+# it does not find a hit for the transcript, change the blank to "Unknown" for "Unknown"
+tab[tab$Contaminant=="","Contaminant"] <- "Unknown"
 
 # Do the same for taxonomic scope
 tab[tab$Tax.Scope=="","Tax.Scope"] <- "Unknown"
@@ -101,15 +103,20 @@ tab$Prevalence <- rowSums(tab[,2:7]>0)
 
 
 #################################################
-# Summarize expression levels by contaminant status and taxonomy
+# Summarize expression levels by transcript contaminant status and taxonomy
 #################################################
 
 # get a table summarizing how many RNA fragments map by contaminant status
-bycontam_wide <- group_by(tab,Contaminant) %>% summarize(across(K21:K33,sum)) %>% data.frame()
+bycontam_wide <- group_by(tab,Contaminant) %>% 
+  summarize(across(K21:K33,sum)) %>% 
+  data.frame()
+
 # pivot the table so that it can be easily turned into a barplot
-bycontam <- bycontam_wide %>% pivot_longer(!Contaminant,names_to="Sample",values_to="Count")
+bycontam <- bycontam_wide %>% 
+  pivot_longer(!Contaminant,names_to="Sample",values_to="Count")
+
 # order the factors
-bycontam$Contaminant <- factor(bycontam$Contaminant,levels=c("U","Yes","No"))
+bycontam$Contaminant <- factor(bycontam$Contaminant,levels=c("Unknown","Yes","No"))
 
 # stacked barplot of contaminant status for each sample, absolute values
 ggplot(bycontam,aes(fill=Contaminant,y=Count,x=Sample)) +
@@ -132,11 +139,16 @@ prevalence <- data.frame(Contaminant=tab$Contaminant,Prevalence=tab$Prevalence) 
 ggplot(prevalence,aes(fill=Contaminant,y=n,x=Prevalence)) +
   geom_bar(position="dodge",stat="identity")
 
+# Make plots of read counts by taxonomy of transcript
 
 # get a table summarizing how many RNA fragments map by taxonomic scope
-bytax_wide <- group_by(tab,Tax.Scope) %>% summarize(across(K21:K33,sum)) %>% data.frame()
+bytax_wide <- group_by(tab,Tax.Scope) %>% 
+  summarize(across(K21:K33,sum)) %>% 
+  data.frame()
+
 # pivot the table so that it can be easily turned into a barplot
-bytax <- bytax_wide %>% pivot_longer(!Tax.Scope,names_to="Sample",values_to="Count")
+bytax <- bytax_wide %>% 
+  pivot_longer(!Tax.Scope,names_to="Sample",values_to="Count")
 
 # stacked barplot of taxonomic scope status for each sample, absolute values
 ggplot(bytax,aes(fill=Tax.Scope,y=Count,x=Sample)) +
@@ -315,7 +327,7 @@ plotMA(res_shrink, ylim=c(-4,4))
 
 # distribution of log2 fold changes:
   # there should be a peak at 0
-hist(resDE$log2FoldChange,breaks=200)
+hist(res_shrink$log2FoldChange,breaks=200)
 abline(v=0,col="red",lwd=2)
 
 ##############
@@ -362,9 +374,9 @@ rld <- rlog(dds, blind=FALSE)
 # get top 50 log fold change genes (excluding cook's cutoff outliers)
 top50 <- data.frame(res_shrink) %>%
   filter(!is.na(padj)) %>% 
-  arrange(-log2FoldChange) %>% 
+  arrange(-abs(log2FoldChange)) %>% 
   rownames() %>% 
-  head(.,n=50)
+  head(.,n=200)
 
 df <- data.frame(colData(dds)[,"TimePoint"])
   rownames(df) <- colnames(dds)
@@ -381,14 +393,114 @@ pheatmap(
 ##############
 
 # plot counts for individual genes
-  # get an ordered list of genes
-  # exclude cook's cutoff genes
-l2fc_ord <- data.frame(res_shrink) %>%
-  filter(!is.na(padj)) %>% 
-  arrange(-log2FoldChange) %>% 
-  rownames()
+  # use top50 vector from above
 
-plotCounts(dds, gene=l2fc_ord[1], intgroup="TimePoint")
+plotCounts(dds, gene=top50[50], intgroup="TimePoint")
+
+
+
+###############################################
+# gene ontology enrichment analysis 
+###############################################
+
+library(goseq)
+
+# combine results with annotation information
+
+res2 <- cbind(gene_id=rownames(res_shrink),res_shrink) %>% 
+  data.frame() %>%
+  filter(!is.na(padj))
+
+
+# combine these into a single data frame using only transcripts in common to both
+res2 <- inner_join(res2,tab,by="gene_id")
+
+# now we need to format the data for goseq
+  # a vector of 1/0 for each gene, indicating DE/not DE
+  # a vector of transcript lengths (the method tries to account for this source of bias)
+  # a table of transcript ID to category IDs (in this case GO term IDs) 
+
+# DE/not DE vector: in this case let's select transcripts with padj < 0.1
+
+de <- res2$padj < 0.1
+names(de) <- res2[,1]
+
+# vector of transcript lengths
+len <- mylength[res2[,1]]
+
+# mapping of transcript IDs to category IDs
+
+# a function to parse a single set of entap go terms
+# a new version of entap will output the annotation pre-formatted like this
+parse_entap_goterms <- function(goterms,geneid){
+  if(goterms==""){return(c(geneid,NA,NA))}
+  str_split(goterms,regex(",(?=GO)"))[[1]] %>%
+    str_split(.,regex("(?<=GO:[0-9]{7})-")) %>% 
+    do.call(rbind,.) %>% 
+    cbind(geneid,.)
+  }
+
+# loop through each transcript and collect the GO terms
+goterms <- c()
+for(i in 1:dim(tab)[1]){
+  
+  x <- parse_entap_goterms(tab$GO.Biological[i], tab[i,1])
+  y <- parse_entap_goterms(tab$GO.Molecular[i], tab[i,1])
+  z <- parse_entap_goterms(tab$GO.Cellular[i], tab[i,1])
+  
+  goterms <- rbind(goterms,x,y,z)
+  if((i %% 100)==0){print(i)}
+  }
+
+# extract and bind levels
+goterms <- data.frame(goterms,levels=str_extract(goterms[,3],regex("(?<=\\(L=)[0-9]")))
+
+# select level 3 GO terms, get only the transcript ID and go term ID
+go <- data.frame(goterms[goterms$levels=="3",1:2])
+
+# now we can start the analysis
+# first try to account for transcript length bias by calculating the
+# probability of being DE based purely on gene length
+pwf <- nullp(DEgenes=de,bias.data=len)
+
+GO.wall <- goseq(pwf=pwf,gene2cat=go)
+
+# do FDR correction on p-values using Benjamini-Hochberg, add to output object
+GO.wall <- cbind(
+  GO.wall,
+  padj_overrepresented=p.adjust(GO.wall$over_represented_pvalue, method="BH"),
+  padj_underrepresented=p.adjust(GO.wall$under_represented_pvalue, method="BH")
+)
+
+# explore the results
+
+head(GO.wall)
+
+
+# identify transcript IDs associated with the top enriched GO term
+g <- which(go$V2==GO.wall[1,1])
+gids <- go[g,1]
+
+# get their gfold results
+gfold[gfold[,1] %in% gids,]
+
+# get gene descriptions
+tab[tab[,1] %in% gids, c("Query.Sequence","Description")]
+
+# plot gfold scores for those genes, sorted
+ord <- order(gfold[gfold[,1] %in% gids,]$gfold)
+plot(gfold[gfold[,1] %in% gids,]$gfold[ord],
+     ylab="gfold scores of genes in top enriched GO term",
+     pch=20,cex=.5)
+abline(h=0,lwd=2,lty=2,col="gray")
+
+
+
+
+tab2 <- tab %>% 
+  mutate(GO.Biological = str_split(GO.Biological,regex(".(?=GO:)"))) %>%   
+  unnest(GO.Biological)
+
 
 
 

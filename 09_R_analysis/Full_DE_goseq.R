@@ -432,38 +432,27 @@ len <- mylength[res2[,1]]
 
 # a function to parse a single set of entap go terms
 # a new version of entap will output the annotation pre-formatted like this
-parse_entap_goterms <- function(goterms,geneid){
-  if(goterms==""){return(c(geneid,NA,NA))}
-  str_split(goterms,regex(",(?=GO)"))[[1]] %>%
-    str_split(.,regex("(?<=GO:[0-9]{7})-")) %>% 
-    do.call(rbind,.) %>% 
-    cbind(geneid,.)
-  }
 
-# loop through each transcript and collect the GO terms
-goterms <- c()
-for(i in 1:dim(tab)[1]){
-  
-  x <- parse_entap_goterms(tab$GO.Biological[i], tab[i,1])
-  y <- parse_entap_goterms(tab$GO.Molecular[i], tab[i,1])
-  z <- parse_entap_goterms(tab$GO.Cellular[i], tab[i,1])
-  
-  goterms <- rbind(goterms,x,y,z)
-  if((i %% 100)==0){print(i)}
-  }
+GOmap <- select(res2,gene_id,GO.Biological,GO.Cellular,GO.Molecular)
 
-# extract and bind levels
-goterms <- data.frame(goterms,levels=str_extract(goterms[,3],regex("(?<=\\(L=)[0-9]")))
+GOmap <- pivot_longer(GOmap,cols=!gene_id,names_to="GO.type",values_to="GO.term")
 
-# select level 3 GO terms, get only the transcript ID and go term ID
-go <- data.frame(goterms[goterms$levels=="3",1:2])
+GOmap <- GOmap %>% 
+  mutate(GO.term = str_split(GO.term,regex(".(?=GO:)"))) %>%   
+  unnest(GO.term) %>% 
+  separate(col=GO.term,into=c("GO.term","GO.description"),sep="(?<=GO:.......)-")
 
+GOmap$GO.term[GOmap$GO.term==""] <- NA
+
+GOmap$GO.description <- str_replace(GOmap$GO.description,regex(",$"),"")
+
+go <- data.frame(GOmap[,c(1,3)])
 # now we can start the analysis
 # first try to account for transcript length bias by calculating the
 # probability of being DE based purely on gene length
-pwf <- nullp(DEgenes=de,bias.data=len)
+mypwf <- nullp(DEgenes=de,bias.data=len)
 
-GO.wall <- goseq(pwf=pwf,gene2cat=go)
+GO.wall <- goseq(pwf=mypwf,gene2cat=go)
 
 # do FDR correction on p-values using Benjamini-Hochberg, add to output object
 GO.wall <- cbind(
@@ -477,21 +466,25 @@ GO.wall <- cbind(
 head(GO.wall)
 
 
-# identify transcript IDs associated with the top enriched GO term
-g <- which(go$V2==GO.wall[1,1])
+# identify transcript IDs associated with one of the top enriched GO terms
+g <- which(go[,2]=="GO:0015979")
 gids <- go[g,1]
 
-# get their gfold results
-gfold[gfold[,1] %in% gids,]
-
 # get gene descriptions
-tab[tab[,1] %in% gids, c("Query.Sequence","Description")]
+gogenes <- filter(res2,gene_id %in% gids) %>% 
+  select(gene_id,Description,log2FoldChange,padj) %>% 
+  arrange(log2FoldChange)
 
-# plot gfold scores for those genes, sorted
-ord <- order(gfold[gfold[,1] %in% gids,]$gfold)
-plot(gfold[gfold[,1] %in% gids,]$gfold[ord],
+
+# plot log2FoldChange for those genes, sorted
+p <- ggplot(gogenes,aes(y=log2FoldChange,x=1:length(log2FoldChange),color=-log(padj))) + 
+  geom_point()
+p
+
+plot(gogenes$log2FoldChange,
      ylab="gfold scores of genes in top enriched GO term",
-     pch=20,cex=.5)
+     pch=20,
+     cex=.5,)
 abline(h=0,lwd=2,lty=2,col="gray")
 
 
@@ -506,12 +499,19 @@ resGO <- res2 %>%
 
 
 
+
+
+
+
+
+
 #################################################
 # Next we'll analyze our data using NOISeq
 #################################################
 
+# Optional exercise to also analyze the data using NOISeq. 
 
-
+library(NOISeq)
 
 #################################################
 # Create the NOISeq data object
@@ -625,111 +625,4 @@ ggplot(dat,aes(color=color,x=NOISeq,y=DESeq2)) +
   geom_point()
 
 
-
-###############################################
-# gene ontology enrichment analysis 
-###############################################
-
-library(goseq)
-
-# get annotations (this is only a subset for this demonstration)
-ann <- read.table("final_annotations_no_contam_lvl0.tsv",sep="\t",quote="",header=TRUE)
-
-# get gfold results
-gfold <- read.table("U32_vs_U13.diff",skip=1)
-colnames(gfold) <- c("Query.Sequence","Gene.Name","gfold","eFDR","log2FC","RPKM_1","RPKM_2")
-
-# combine these into a single data frame using only transcripts in common to both
-tab <- inner_join(gfold,ann,by="Query.Sequence")
-
-# select only transcripts for which an annotation exists (here we'll use a non-missing blast e-value as a shorthand)
-# this will be our total gene set within which we'll look for GO terms associated with genes with extreme gfold scores
-# note that here we only have 6810 transcripts, but for an actual analysis you will most likely have more
-tab <- tab[!is.na(tab$E.Value),]
-
-# now we need to format the data for goseq
-  # a vector of 1/0 for each gene, indicating DE/not DE
-  # a vector of transcript lengths (the method tries to account for this source of bias)
-  # a table of transcript ID to category IDs (in this case GO term IDs) 
-
-# DE/not DE vector: in this case let's select genes with gfold scores > 4 or < -4
-  # 576 genes
-de <- as.numeric(tab$gfold > 4 | tab$gfold < -4)
-names(de) <- tab[,1]
-
-# vector of transcript lengths
-len <- mylength[tab[,1]]
-
-# mapping of transcript IDs to category IDs
-
-# a function to parse a single set of entap go terms
-# a new version of entap will output the annotation pre-formatted like this
-parse_entap_goterms <- function(goterms,geneid){
-  if(goterms==""){return(c(geneid,NA,NA))}
-  str_split(goterms,regex(",(?=GO)"))[[1]] %>%
-    str_split(.,regex("(?<=GO:[0-9]{7})-")) %>% 
-    do.call(rbind,.) %>% 
-    cbind(geneid,.)
-  }
-
-# loop through each transcript and collect the GO terms
-goterms <- c()
-for(i in 1:dim(tab)[1]){
-  
-  x <- parse_entap_goterms(tab$GO.Biological[i], tab[i,1])
-  y <- parse_entap_goterms(tab$GO.Molecular[i], tab[i,1])
-  z <- parse_entap_goterms(tab$GO.Cellular[i], tab[i,1])
-  
-  goterms <- rbind(goterms,x,y,z)
-  if((i %% 100)==0){print(i)}
-  }
-
-# extract and bind levels
-goterms <- data.frame(goterms,levels=str_extract(goterms[,3],regex("(?<=\\(L=)[0-9]")))
-
-# select level 3 GO terms, get only the transcript ID and go term ID
-go <- data.frame(goterms[goterms$levels=="3",1:2])
-
-# now we can start the analysis
-# first try to account for transcript length bias by calculating the
-# probability of being DE based purely on gene length
-pwf <- nullp(DEgenes=de,bias.data=len)
-
-GO.wall <- goseq(pwf=pwf,gene2cat=go)
-
-# do FDR correction on p-values using Benjamini-Hochberg, add to output object
-GO.wall <- cbind(
-  GO.wall,
-  padj_overrepresented=p.adjust(GO.wall$over_represented_pvalue, method="BH"),
-  padj_underrepresented=p.adjust(GO.wall$under_represented_pvalue, method="BH")
-)
-
-# explore the results
-
-head(GO.wall)
-
-
-# identify transcript IDs associated with the top enriched GO term
-g <- which(go$V2==GO.wall[1,1])
-gids <- go[g,1]
-
-# get their gfold results
-gfold[gfold[,1] %in% gids,]
-
-# get gene descriptions
-tab[tab[,1] %in% gids, c("Query.Sequence","Description")]
-
-# plot gfold scores for those genes, sorted
-ord <- order(gfold[gfold[,1] %in% gids,]$gfold)
-plot(gfold[gfold[,1] %in% gids,]$gfold[ord],
-     ylab="gfold scores of genes in top enriched GO term",
-     pch=20,cex=.5)
-abline(h=0,lwd=2,lty=2,col="gray")
-
-
-
-
-tab2 <- tab %>% 
-  mutate(GO.Biological = str_split(GO.Biological,regex(".(?=GO:)"))) %>%   
-  unnest(GO.Biological)
 

@@ -497,7 +497,7 @@ abline(h=0,lwd=2,lty=2,col="gray")
 
 
 
-tab2 <- tab %>% 
+resGO <- res2 %>% 
   mutate(GO.Biological = str_split(GO.Biological,regex(".(?=GO:)"))) %>%   
   unnest(GO.Biological)
 

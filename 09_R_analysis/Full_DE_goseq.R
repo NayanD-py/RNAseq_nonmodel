@@ -343,7 +343,7 @@ plot(x=res_shrink$log2FoldChange,
      y=log_padj,
      pch=20,
      cex=.2,
-     col=(log_padj > 3)+1, # color padj < 0.1 red
+     col=(log_padj > 1)+1, # color padj < 0.1 red
      ylab="negative log-scaled adjusted p-value",
      xlab="shrunken log2 fold changes")
 
@@ -359,10 +359,15 @@ plotPCA(vsd, intgroup="TimePoint")
 # alternatively, using ggplot
 
 dat <- plotPCA(vsd, intgroup="TimePoint",returnData=TRUE)
+percentVar <- round(100 * attr(dat, "percentVar"))
 
-p <- ggplot(dat,aes(x=PC1,y=PC2,col=group))
-p <- p + geom_point() + geom_text_repel(aes(label=name))
+p <- ggplot(dat,aes(x=PC1,y=PC2,col=group)) +
+  geom_point() + 
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) +
+  geom_text_repel(aes(label=name))
 p
+
 
 ##############
 
@@ -376,7 +381,7 @@ top50 <- data.frame(res_shrink) %>%
   filter(!is.na(padj)) %>% 
   arrange(-abs(log2FoldChange)) %>% 
   rownames() %>% 
-  head(.,n=200)
+  head(.,n=50)
 
 df <- data.frame(colData(dds)[,"TimePoint"])
   rownames(df) <- colnames(dds)
@@ -430,7 +435,7 @@ len <- mylength[res2[,1]]
 
 # mapping of transcript IDs to category IDs
 
-# a function to parse a single set of entap go terms
+# this code parses entap go terms
 # a new version of entap will output the annotation pre-formatted like this
 
 GOmap <- select(res2,gene_id,GO.Biological,GO.Cellular,GO.Molecular)
@@ -488,16 +493,10 @@ plot(gogenes$log2FoldChange,
 abline(h=0,lwd=2,lty=2,col="gray")
 
 
+hist(res_shrink$log2FoldChange,breaks=200,freq=FALSE)
+abline(v=0,col="red",lwd=2)
 
-
-resGO <- res2 %>% 
-  mutate(GO.Biological = str_split(GO.Biological,regex(".(?=GO:)"))) %>%   
-  unnest(GO.Biological)
-
-
-
-
-
+hist(gogenes$log2FoldChange,breaks=100,add=TRUE,col=rgb(0,0,1,.2),freq=FALSE)
 
 
 

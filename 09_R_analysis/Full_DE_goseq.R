@@ -71,6 +71,18 @@ for (i in count_files) {
 #grab the rows from the 1st column and use it as the row-names in the dataframe
 rownames(co) <- co[,1]
 
+# # lines 45-72 can also be accomplished using tidyverse tools like this:
+# # this is here just to demonstrate an alternate approach that is more compact
+#
+# co <- map_df(count_files, ~vroom(.x, col_names = TRUE, id = "sample", delim = "\t")) %>%
+#   mutate(sample = word(sample,3,sep="/")) %>%
+#   pivot_wider(id_cols=c(target_id),names_from=sample, values_from=est_counts) %>%
+#   as.data.frame()
+#
+# colnames(co)[1] <- "gene_id"
+# rownames(co) <- co[,1]
+
+
 # create a vector containing transcript lengths
 # read in length
 df_length <- read.table(count_files[1], sep = "\t", header = TRUE)[,1:2]
@@ -86,43 +98,40 @@ names(mylength) <- df_length[,1]
 
 # Here we read in the table containing our gene annotations from EnTAP
   # the sep, quote, and comment.char options ensure this complex table is parsed correctly
-ann <- read.table("../07_EnTAP/final_annotations_lvl3.tsv.gz",header=TRUE, sep="\t", quote="", comment.char="")
+ann <- read.table("../07_EnTAP/entap_outfiles/final_results/final_annotations_lvl3.tsv.gz",header=TRUE, sep="\t", quote="", comment.char="")
 
 # merge the counts data frame with the annotations
 tab <- merge(co, ann, by.x = "gene_id", by.y = "Query.Sequence")
 
-# EnTAP flags possible contaminant transcripts, but leaves the field blank if
-# it does not find a hit for the transcript, change the blank to "Unknown" for "Unknown"
-tab[tab$Contaminant=="","Contaminant"] <- "Unknown"
+# Three modifications:
+# 1. EnTAP flags possible contaminant transcripts, but leaves the field blank if
+  # it does not find a hit for the transcript, change the blank to "Unknown" for "Unknown"
+# 2. Do the same for the Taxonomic Scope variable. 
+# 3. Add a Prevalence column
 
-# Do the same for taxonomic scope
-tab[tab$Tax.Scope=="","Tax.Scope"] <- "Unknown"
-
-# add a column, Prevalence for the number of samples a gene is expressed in
-tab$Prevalence <- rowSums(tab[,2:7]>0)
-
+tab <- mutate(
+  tab,
+  Contaminant = str_replace(Contaminant, "^$","Unknown"),
+  Tax.Scope = str_replace(Tax.Scope, "^$","Unknown"),
+  Prevalence = rowSums(tab[,2:7]>0)
+  )
 
 #################################################
 # Summarize expression levels by transcript contaminant status and taxonomy
 #################################################
 
 # get a table summarizing how many RNA fragments map by contaminant status
-bycontam_wide <- group_by(tab,Contaminant) %>% 
-  summarize(across(K21:K33,sum)) %>% 
-  data.frame()
-
-# pivot the table so that it can be easily turned into a barplot
-bycontam <- bycontam_wide %>% 
-  pivot_longer(!Contaminant,names_to="Sample",values_to="Count")
-
-# order the factors
-bycontam$Contaminant <- factor(bycontam$Contaminant,levels=c("Unknown","Yes","No"))
+bycontam <- group_by(tab,Contaminant) %>% 
+  summarize(across(K21:K33,sum)) %>% # get the summaries
+  pivot_longer(!Contaminant,names_to="Sample",values_to="Count") %>% # pivot the table to long format
+  mutate(Contaminant = fct_relevel(Contaminant,c("Unknown","Yes","No"))) %>% # relevel the factors
+  as.data.frame() # convert to a data frame
 
 # stacked barplot of contaminant status for each sample, absolute values
 ggplot(bycontam,aes(fill=Contaminant,y=Count,x=Sample)) +
   geom_bar(position="stack",stat="identity")
 
-# stacked barplot of contaminant status for each sample, proprortions
+# stacked barplot of contaminant status for each sample, proportions
 ggplot(bycontam,aes(fill=Contaminant,y=Count,x=Sample)) +
   geom_bar(position="fill",stat="identity")
 
@@ -130,7 +139,7 @@ ggplot(bycontam,aes(fill=Contaminant,y=Count,x=Sample)) +
   # must call "dplyr::count" because tidyverse count was masked by another package
 
 # extract prevalence frequencies by contaminant status
-prevalence <- data.frame(Contaminant=tab$Contaminant,Prevalence=tab$Prevalence) %>% 
+prevalence <- select(tab, Contaminant, Prevalence) %>% 
   group_by(Contaminant) %>% 
   dplyr::count(Prevalence) %>% 
   data.frame()
@@ -142,20 +151,17 @@ ggplot(prevalence,aes(fill=Contaminant,y=n,x=Prevalence)) +
 # Make plots of read counts by taxonomy of transcript
 
 # get a table summarizing how many RNA fragments map by taxonomic scope
-bytax_wide <- group_by(tab,Tax.Scope) %>% 
+bytax <- group_by(tab,Tax.Scope) %>% 
   summarize(across(K21:K33,sum)) %>% 
+  pivot_longer(!Tax.Scope,names_to="Sample",values_to="Count") %>%
   data.frame()
-
-# pivot the table so that it can be easily turned into a barplot
-bytax <- bytax_wide %>% 
-  pivot_longer(!Tax.Scope,names_to="Sample",values_to="Count")
 
 # stacked barplot of taxonomic scope status for each sample, absolute values
 ggplot(bytax,aes(fill=Tax.Scope,y=Count,x=Sample)) +
   geom_bar(position="stack",stat="identity")
 
 # extract prevalence frequencies by taxonomic scope
-prevalence <- data.frame(Tax.Scope=tab$Tax.Scope,Prevalence=tab$Prevalence) %>% 
+prevalence <- select(tab, Tax.Scope, Prevalence) %>% 
   group_by(Tax.Scope) %>% 
   dplyr::count(Prevalence) %>% 
   data.frame()
@@ -170,7 +176,7 @@ ggplot(prevalence,aes(fill=Tax.Scope,y=n,x=Prevalence)) +
 #################################################
 
 # create data frame 'm' where columns are counts, rownames are transcript IDs
-m <- filter(tab,Tax.Scope=="Viridiplantae")[,1:7]
+m <- filter(tab,Tax.Scope=="Viridiplantae" & str_detect(Taxonomic.Lineage, "tracheophyta"))[,1:7]
 rownames(m) <- m[,1]
 m <- m[,-1]
 
@@ -210,13 +216,13 @@ all(colnames(m) == myfactors$Sample)
 dim(m)
 
 # how many (non-contaminant) transcripts have expression for n samples?
-prevalence <- filter(tab,Tax.Scope=="Viridiplantae")[,"Prevalence"]
+prevalence <- filter(tab,Tax.Scope=="Viridiplantae" & str_detect(Taxonomic.Lineage, "tracheophyta"))[,"Prevalence"]
 table(prevalence)
 
 # what proportion of expression data maps to low prevalence transcripts?
 colSums(m[prevalence<2,])/colSums(m)
 
-# what is the distribution of total expression across samples?
+# what is the distribution of expression across transcripts?
 rowSums(m) %>% log(.,10) %>% hist(.,100)
 
 # Before moving forward, we're going to exclude genes that are most likely to be useless in the analysis
@@ -432,26 +438,26 @@ names(de) <- res2[,1]
 
 # vector of transcript lengths
 len <- mylength[res2[,1]]
-
+  
 # mapping of transcript IDs to category IDs
 
 # this code parses entap go terms
 # a new version of entap will output the annotation pre-formatted like this
 
-GOmap <- select(res2,gene_id,GO.Biological,GO.Cellular,GO.Molecular)
-
-GOmap <- pivot_longer(GOmap,cols=!gene_id,names_to="GO.type",values_to="GO.term")
-
-GOmap <- GOmap %>% 
+GOmap <- select(res2,gene_id,GO.Biological,GO.Cellular,GO.Molecular) %>%
+  pivot_longer(cols=!gene_id,names_to="GO.type",values_to="GO.term") %>%
   mutate(GO.term = str_split(GO.term,regex(".(?=GO:)"))) %>%   
   unnest(GO.term) %>% 
-  separate(col=GO.term,into=c("GO.term","GO.description"),sep="(?<=GO:.......)-")
+  separate(col=GO.term,into=c("GO.term","GO.description"),sep="(?<=GO:.......)-") %>%
+  mutate(
+    GO.term = na_if(GO.term, ""),
+    GO.description = str_replace(GO.description,regex(",$"),"")
+    )
 
-GOmap$GO.term[GOmap$GO.term==""] <- NA
-
-GOmap$GO.description <- str_replace(GOmap$GO.description,regex(",$"),"")
-
+# make the data frame that maps transcript IDs to GO terms. 
 go <- data.frame(GOmap[,c(1,3)])
+
+
 # now we can start the analysis
 # first try to account for transcript length bias by calculating the
 # probability of being DE based purely on gene length
@@ -469,7 +475,7 @@ GO.wall <- cbind(
 # explore the results
 
 head(GO.wall)
-
+  
 
 # identify transcript IDs associated with one of the top enriched GO terms
 g <- which(go[,2]=="GO:0015979")

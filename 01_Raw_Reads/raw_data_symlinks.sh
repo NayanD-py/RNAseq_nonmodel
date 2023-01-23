@@ -11,7 +11,7 @@
 #SBATCH -o %x_%j.out
 #SBATCH -e %x_%j.err
 
-fpath="/UCHC/PublicShare/CBC_Tutorials/rnaseq_nonmodel_eastern_larch/raw_data/"
+fpath="/core/cbc/tutorials/rawdata/RNA-seq_nonmodel/"
 
 for f in ${fpath}*; do
         echo $f

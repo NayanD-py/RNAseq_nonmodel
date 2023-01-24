@@ -17,10 +17,10 @@ date
 #################################################################
 # Download fastq files from SRA 
 #################################################################
-
+module load parallel/20180122
 module load sratoolkit/3.0.1
 
-ACCLIST=accession.txt
+ACCLIST=accessionlist.txt
 
 cat $ACCLIST | xargs fasterq-dump
 

@@ -3,7 +3,7 @@
 # run all tutorial scripts using slurm dependencies
 
 cd 01_Raw_Reads
-jid1=$(sbatch --parsable raw_data_symlinks.sh)
+jid1=$(sbatch --parsable getdata.sh)
 
 cd ../02_Quality_Control/
 jid2=$(sbatch --parsable --dependency=afterok:$jid1 qc_raw.sh)

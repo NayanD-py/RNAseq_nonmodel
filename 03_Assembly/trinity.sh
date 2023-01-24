@@ -15,7 +15,7 @@
 hostname
 date
 
-module load trinity/2.8.5
+module load trinity/2.15.0
 module load samtools
 
 # this is an array job. SLURM will run this script 6 times in parallel (#SBATCH --array=[0-5]) contingent on resource availability

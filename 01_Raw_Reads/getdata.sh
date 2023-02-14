@@ -20,6 +20,10 @@ date
 module load parallel/20180122
 module load sratoolkit/3.0.1
 
+
+# The BioProject accession for these data is here:
+	# https://www.ncbi.nlm.nih.gov/bioproject/PRJNA612058
+
 ACCLIST=accessionlist.txt
 
 cat $ACCLIST | xargs fasterq-dump

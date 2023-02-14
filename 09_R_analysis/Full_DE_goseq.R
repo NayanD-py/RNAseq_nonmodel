@@ -611,7 +611,7 @@ p2 <- p + geom_text_repel(size=2) + labs(title = "mds plot of expression data")
 p2
 
 
-plot(log(res$T2_mean+1,2),log(res$T3_mean+1,2),pch=20,cex=.2,col=rgb(0,0,0,.4))
+plot(log(resNOI$T2_mean+1,2),log(resNOI$T3_mean+1,2),pch=20,cex=.2,col=rgb(0,0,0,.4))
 abline(0,1)
 
 plot(myTMM[,3],myTMM[,4],pch=20,cex=.2,col=rgb(0,0,0,.4))

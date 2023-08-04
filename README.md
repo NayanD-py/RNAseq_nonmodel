@@ -1,9 +1,6 @@
-# THIS TUTORIAL IS UNDER CONSTRUCTION
-  the scripts are broken after Step 8, quantifying gene expression
-
 # RNA Sequence Analysis for Non Model Species Eastern larch (Tamarack)  
   
-This repository is a usable, publicly available tutorial for analyzing differential expression data. All steps have been provided for the UConn CBC Xanadu cluster here with appropriate headers for the Slurm scheduler that can be modified simply to run.  Commands should never be executed on the submit nodes of any HPC machine.  If working on the Xanadu cluster, you should use `sbatch scriptname` after modifying the script for each stage.  Basic editing of all scripts can be performed on the server with tools such as nano, vim, or emacs.  If you are new to Linux, please use [this](https://bioinformatics.uconn.edu/unix-basics) handy guide for the operating system commands.  In this guide, you will be working with common bio Informatic file formats, such as [FASTA](https://en.wikipedia.org/wiki/FASTA_format), [FASTQ](https://en.wikipedia.org/wiki/FASTQ_format), [SAM/BAM](https://en.wikipedia.org/wiki/SAM_(file_format)), and [GFF3/GTF](https://en.wikipedia.org/wiki/General_feature_format). You can learn even more about each file format [here](https://bioinformatics.uconn.edu/resources-and-events/tutorials/file-formats-tutorial/). If you do not have a Xanadu account and are an affiliate of UConn/UCHC, please apply for one **[here](https://bioinformatics.uconn.edu/contact-us/)**.  
+This repository is a usable, publicly available tutorial for analyzing differential expression data. All steps have been provided for the UConn CBC Xanadu cluster here with appropriate headers for the Slurm scheduler.  Commands should never be executed on the submit nodes of any HPC machine.  If working on the Xanadu cluster, you should use `sbatch scriptname` after modifying the script for each stage.  Basic editing of all scripts can be performed on the server with tools such as nano, vim, or emacs.  If you are new to Linux, please use [this](https://bioinformatics.uconn.edu/unix-basics) handy guide for the operating system commands.  In this guide, you will be working with common bioinformatic file formats, such as [FASTA](https://en.wikipedia.org/wiki/FASTA_format), [FASTQ](https://en.wikipedia.org/wiki/FASTQ_format), [SAM/BAM](https://en.wikipedia.org/wiki/SAM_(file_format)), and [GFF3/GTF](https://en.wikipedia.org/wiki/General_feature_format). You can learn even more about each file format [here](https://bioinformatics.uconn.edu/resources-and-events/tutorials/file-formats-tutorial/). If you do not have a Xanadu account and are an affiliate of UConn/UCHC, please apply for one **[here](https://bioinformatics.uconn.edu/contact-us/)**.  
   
 ### Contents  
 1. [Introduction](#1-introduction)  
@@ -14,17 +11,14 @@ This repository is a usable, publicly available tutorial for analyzing different
 6. [Evaluating the Assembly](#6-evaluating-the-assembly)
 7. [Functional Annotation](#7-functional-annotation) 
 8. [Quantifying Gene Expression](#8-quantifying-gene-expression)
-9. [Excluding contaminant genes](#9-excluding-contaminant-genes)
-10. [Diffferential Expression](#10-diffferential-expression)  
-       a.    [NOISeq](#a-differentially-expressed-genes-using-noiseq) 
-       b.    [Gfold](#b-differentially-expressed-genes-using-gfold)   
+9. [Differential Expression Analysis in R](#9-Differential-Expression-Analysis-In-R)
 
 
 ## 1. Introduction  
   
-The goal of this tutorial is to guide you through a differential gene expression analysis using RNA-seq data in a **non-model organism**. When an organism is called a **model** this usually means that very generous amounts of research have been performed on it, resulting in large pools of publicly available data. In bioinformatics this means there are pre-existing genomes or transcriptomes, gene annotations, and possibly a wealth of other useful information available in public databases. By contrast, when an organism is called **non-model** that often means those things are not available, and to do a genome-scale analysis, the researcher will have to produce them. 
+The goal of this tutorial is to guide you through a differential gene expression analysis using RNA-seq data in a **non-model organism** for which there is no reference genome available. When a reference genome (or transcriptome) and accompanying functional annotation is available, it is usually preferable to map reads against that resource to do differential expression and downstream functional analysis. 
 
-So in this tutorial, in addition to the standard steps taken when those resources are available (e.g. in our [other RNA-seq tutorial](https://github.com/CBC-UCONN/RNA-seq-with-reference-genome-and-annotation)), we will also assemble and annotate a transcriptome, leading to a workflow that looks like this:
+This isn't always the case, however, so this tutorial includes steps for assembling and annotating a reference transcriptome from RNA-seq data gathered for a differential gene expression analysis, with a resulting workflow that looks like this: 
 
 ![ out line ](/images/outline_wide.png)  
 
@@ -42,32 +36,30 @@ The data we'll use here is from a study of needle abscission in the Eastern larc
 
 ### Cloning the workflow 
 
-In this workflow we have separated each step into folders. In each folder is one or more script for each step along with the results after the scripts are run . When you clone the git repository, the following directory structure will be cloned into your working directory.   
+In this workflow we have separated each step into folders. In each folder is one or more scripts for each step in the analysis. Results are written to the same directory. 
 
-So to follow the steps would be esay once you have cloned this git repository using the `clone` command:
+To work through the tutorial first clone the repository: 
+```bash
+git clone https://github.com/CBC-UCONN/RNAseq_nonmodel.git
 ```
-git clone < git-repository.git >
 
-```
 Once you clone the repository you can see the following folder structure:  
 
 ```  
 Eastern_larch/
 ├── 01_Raw_Reads
-├── Quality_Control
-├── Assembly
-├── Coding_Regions
-├── Clustering
-├── RNAQuast
-├── Index
-├── Counts
-├── Gfold 
-├── NOISeq
-└── EnTAP
+├── 02_Quality_Control
+├── 03_Assembly
+├── 04_Coding_Regions
+├── 05_Clustering
+├── 06_RNAQuast
+├── 07_EnTAP
+├── 08_Counts
+├── 09_R_analysis
 ```  
    
 ###  SLURM scripts   
-This tutorial is tailored to the University of Connecticut's Xanadu computing cluster. Before beginning the tutorial, we'll need to understand a few aspects of the cluster. When first logging into Xanadu from your local terminal, you will be connected to a __submit node__. The submit node provides an interface for interacting with the cluster. Heavy computational work is not done on submit nodes, but rather on __compute nodes__. Never, under any circumstance do substantial computation on a submit node. You may inspect and move files around, or do light editing of scripts, but if you are running a command that uses more than a single processor, or takes more than a couple minutes you should be using a compute node. If you do use a submit node, your process could be killed, all of your work lost, and you may receive a nasty e-mail from a cluster administrator. 
+This tutorial is tailored to the University of Connecticut's Xanadu computing cluster. Before beginning the tutorial, we'll need to understand a few aspects of the cluster. When first logging into Xanadu from your local terminal, you will be connected to a __submit node__. The submit node provides an interface for interacting with the cluster. Heavy computational work is not done on submit nodes, but rather on __compute nodes__. Never, under any circumstance do substantial computation on a submit node. You may inspect and move files around, or do light editing of scripts, but if you are running a command that uses more than a single processor, or takes more than a couple minutes you should be using a compute node. If you do use a submit node, your process could be killed, all of your work lost, and you may receive a grumpy e-mail or slack message from a cluster administrator. 
 
 Access to compute nodes is managed by [SLURM](https://slurm.schedmd.com/documentation.html), software that allocates computational resources to users of the cluster. Jobs we will run in this tutorial will be processed in __batch mode__, meaning that we pass a script to SLURM, which sends it to a compute node to be run (in contrast to __interactive mode__, where we ask for computational resources and then use them to manually run code). Batch scripts each need a header section that tells SLURM what resources the job needs. Header sections look like this:  
 
@@ -122,7 +114,7 @@ The "->" indicates that the filenames are symlinks, and gives the location of th
 
 ### Familiarizing yourself with the raw read data
 
-The reads with which we will be working have been sequenced using [Illumina](https://www.illumina.com/techniques/sequencing.html). We'll assume here that you are familiar with the sequencing technology. Let's have a look at the content of one of our reads, which are in the `fastq` format. They are additionally compressed using `gzip`, so we'll use `zcat`, a pipe (`|`) and `head` to decompress and view the first sequence record:
+The reads with which we will be working have been sequenced using the [Illumina] platform (https://www.illumina.com/techniques/sequencing.html). We'll assume here that you are familiar with the sequencing technology. Let's have a look at the content of one of our reads, which are in the `fastq` format. They are additionally compressed using `gzip`, so we'll use `zcat`, a pipe (`|`) and `head` to decompress and view the first sequence record:
 
 ```bash
 zcat K32_R1.fastq | head -n 4
@@ -337,10 +329,7 @@ This will add output to our `trinity_combine.fasta.transdecoder_dir`, which now 
 ```
 
 The full script is called [transdecoder.sh](/04_Coding_Regions/transdecoder.sh). It can be run from the `04_Coding_Regions` directory by entering `sbatch transdecoder.sh` on the command line. 
-
    
-     
-    
 
 ## 5. Determining and Removing Redundant Transcripts
 
@@ -470,7 +459,6 @@ The first step is to index our reference transcriptome. An index allows possible
 ```bash
 kallisto index -i ../05_Clustering/centroids.fasta.index ../05_Clustering/centroids.fasta
 ```   
-    
 
 ### Counting reads mapping to transcripts
 
@@ -508,400 +496,12 @@ TRINITY_DN27054_c1_g6_i1.p1	11508	11350.3	183.401	1.05834
 TRINITY_DN26839_c0_g2_i1.p1	10935	10777.3	16.3293	0.099241
 TRINITY_DN21012_c2_g1_i3.p1	10839	10681.3	172	1.05472
 ```
-## 8. Excluding Contaminant Genes
 
+We can now take this information into our subsequent analyses. There we will look at our functional annotation and 
 
+## 9. Differential expression analysis in R
 
-## 10. Diffferential Expression 
-
-In this section we will demonstrate two methods of identifying differentially expressed genes: `Gfold` and `NOISeq`, but now that you have the count data, you could bring that to many other methods. To learn how to use `DESeq2`, for example, you could switch over to one of our [other tutorials](https://github.com/CBC-UCONN/RNA-seq-with-reference-genome-and-annotation#7-pairwise-differential-expression-with-counts-in-r-using-deseq2) and follow that from here.
-
-Where as Gfold and NOISeq both can used to find differentially expressed genes when there are no-replicates as well as replicates avaliable. In this tutorial we will use Gfold, to find DE genes, when you do not have replicates and next we will use the NOISeq, show an example when you have replicates. 
-
-### a. Differentially Expressed Genes using NOISeq  
-
-Another program which is useful in finding differentially expressed genes when there are no replicates is the R package [NOISeq](https://bioconductor.org/packages/release/bioc/html/NOISeq.html). It can be used to get exploratory plots to evaluate count distribution, types of detected features, and differential expression between two conditions.   
-  
-In order to get the expressed genes using NOISeq program, you need to provide the count files as the input. For that we will use the kallisto generated count files which can be found in *abundance.tsv* files generated for each sample in the indexing step. As the abundance.tsv file will contain _GeneSymbol, GeneName, Read Count, Gene exon length and RPKM_ and we will use a *awk* command to grab only the _GeneSymbol_ and _Read Count_ from the *abundance.tsv* file.  
-
-```
-awk '{print $1 "\t" $4}' ../Counts/K23/abundance.tsv > K23.counts
-awk '{print $1 "\t" $4}' ../Counts/K32/abundance.tsv > K32.counts
-awk '{print $1 "\t" $4}' ../Counts/U32/abundance.tsv > U32.counts
-awk '{print $1 "\t" $4}' ../Counts/U13/abundance.tsv > U13.counts
-```   
-
-We also need the transcript length information, for the NOISeq calculation. It can be gathered from the *abundance.tsv* file as well, using the following code:  
-
-```awk
-awk '{print $1 "\t" $2}' ../Counts/K23/abundance.tsv > length.txt
-``` 
-
-You can run this command in an interactive session or can run the [counts.sh](/NOISeq/counts.sh) script using shell in a interactive session.   
-  
-```bash
-sh counts.sh
-```   
-
-This will produce counts files with two columns where it will contain the Gene Name and the counts associated with it. Also the length file with two columns which includes the transcript name and transcript length.  
-
-```
-NOISeq/
-├── U13.counts
-├── U32.counts
-├── K23.counts
-├── K32.counts
-└── length.txt
-```   
-
-  
-### NOISeq to produce differentially expressed genes   
-
-This part can be run using the cluster or using your own PC or laptop. We recommend transferring the above counts files and the feature length file to your own computer and using the RStudio package.
-
-To transfer the count files and the transcript feature length file from cluster to your location using a terminal window: 
-```bash
-scp <user name>@transfer.cam.uchc.edu:<PATH-to-NOISeq-Directory>/Eastern_larch/NOISeq/*.counts .
-scp <user name>@transfer.cam.uchc.edu:<PATH-to-NOISeq-Directory>/Eastern_larch/NOISeq/length.txt .
-```
-
-**Prerequisites:** Before using the NOISeq package you need to make sure you have already downloaded the required packages including: NOISeq and dplyr. If not please download the necessary packages which are compatible with your version of R. 
-
-When running the R code described below we will assume you have downloaded the count files to your R working directory.   
-
-We will load the the *dplyr* library and will set the paths to the input count files and output files which will be generated during the execution of the program. The following script will write csv files and image files to the current directory, if you would like to direct it to a different location you are welcome to do so be changing the path of the output.  
-
-```r
-library(dplyr)
-
-list.files()
-
-#Set directory paths to working directory
-count_dir <- getwd() # or appropriate path to the counts 
-csv_out <- getwd() # or appropriate path to your output csv files
-image_out <- getwd() # or appropriate path to your image out files
-```   
-
-Next we will create a dataframe to hold the count files by reading one at a time.  
-```r
-##  Read count files AND create a dataframe to hold the count data
-
-#create a empty dataframe called m to merge the data into
-m = data.frame()
-# using for loop read all the count files in the count_dir path
-for (i in list.files(pattern = ".counts")) {
-  print(paste0("reading file: ", i))
-  #read file as a data frame
-  
-  f <- read.table(i, sep = "\t", header = TRUE)
-  #rename the columns
-  colnames(f) <- c("gene_id", substr(i, 1, nchar(i)-7))
-  #copy the data to another dataframe called f1
-  f1 <- subset(f, select= c("gene_id", substr(i, 1, nchar(i)-7)))
-  
-  #if the m is empty just copy the f to m
-  if(length(m) == 0){
-    m = f1
-    
-  } else 
-  {
-    #if the dataframe is not empty then merge the data
-    m <- merge(m, f1, by.x = "gene_id", by.y = "gene_id")
-  }
-  rm(f1)
-}
-
-#grab the rows from the 1st colum and use it as the row-names in the dataframe
-rownames(m) <- m[,1]
-
-# remove the column-1 (gene_ids) from the data frame using dplyr::select function
-m <- select(m, "K23", "K32", "U13", "U32")
-rm(f)
-```   
-
-Once the dataframe is created each column is represented by a sample and the rows with feature counts.  
- 
-Next we will prepare the metadata for the analysis. In here we can include the samples and different conditions we are hoping the evaluate. For this experiment we have two time points of data from a same location we will include that using TimePoint as a condition, which we would like to evaluate.   
-
-```r
-#################################################
-## MetaData
-#################################################
-Sample = c("K32", "K23", "U13", "U32")
-Condition = c("Killingworth", "Killingworth", "UConn", "UConn")
-TimePoint = c("T2", "T3", "T3", "T2")
-myfactors <- data.frame(Sample, Condition, TimePoint)
-myfactors
-```   
-
-Once the myfactors dataframe is created it is important to check the columns in the dataframe(m) and mata-data rows are in the the same order.  
-
-```r
-# first check wheter all the columns in dataframe(m) and myfactor is present
-all(colnames(m) %in% myfactors$Sample)
-
-# Then check the order is correct
-all(rownames(m) == myfactors$Sample[1])
-
-# Then order them according to the Sample names
-m <- m[, myfactors$Sample]
-
-# Now check the order is correct after sorting 
-all(colnames(m) == myfactors$Sample)
-```   
-
-We need to import the length information as a part of our meta data. 
-```r
-# import length information to a dataframe
-df_length <- read.table("length.txt", sep = "\t", header = TRUE, row.names = 1)
-
-# create a vector to hold the length information
-mylength <- setNames(object = df_length$length, row.names(df_length))
-head(mylength)
-```
-  
-
-As the next step we will create the NOISeq object using the count dataframe and factors dataframe created above.  
-
-```r
-#####################################################
-##  NOISeq          
-#####################################################
-
-library(NOISeq)
-
-# Creating a NOISeq object
-mydata <- readData(data = m, factors = myfactors, length = mylength)
-mydata
-
-head(assayData(mydata)$exprs)
-head(featureData(mydata)@data)
-head(pData(mydata))
-```   
-
-#### Quality Control of Count Data  
-Before proceeding with the analysis of data it is important to see the quality of the experimental data. This includes determining possible biases of the data. In this tutorial we have shown the following plots to identify the quality of our count data.   
-1.   Count distribution 
-2.   Lengthbiases   
-3.   Batch effects   
-
-Before generating any type of plots, *dat* function must be applied on the input data which is the NOISeq object to obtain the data which is needed. This can be passed using the _type_ argument. Once the data is generated to plot, image can be generated using the _explo.plot_ function.
-
-##### 1. Count distribution plot  
-As a part of a quality control step before procedding with the analysis it is important to visualize the possible bias of the sample. As a part of this we can detect the count distribution of samples.   
-
-```r
-#####################################################
-## Count Distribution 
-#####################################################
-countsbio = dat(mydata, factor = NULL, type = "countsbio")
-explo.plot(countsbio, toplot = 1, samples = NULL, plottype = "boxplot")
-```
-![](images/Count_distribution_plot.png)
-
-##### 2. Length bias plot  
-Lengthbias plot will discribe the relation of the feature length towards the expression values. Once caluclated, both model p-value and coefficient of determination (R2) are shown in the plot with the regression curve. 
-
-```r
-##############
-## Length Bias
-##############
-mylenghtbias = dat(mydata, factor = "TimePoint", type = "lengthbias")
-explo.plot(mylenghtbias, samples = NULL, toplot = "global")
-```
-
-![](images/Lengthbias_plot.png)   
-
-Significant p-value with a high R2 value will indicate a expression is dependent on the feature length and the curve shows its dependence.  
-
-
-##### 3.  PCA plots 
-Principle component analysis (PCA) plots can be used to visualize how the samples are clustered acoording to the experimental design.   
-
-
-```r
-##############
-## PCA
-##############
-myPCA = dat(mydata, type = "PCA")
-explo.plot(myPCA, factor= "TimePoint")
-```   
-
-![](images/PCA_plot_Timepoint.png)  
-
-
-#### NOISeq-bio  
-
-NOISeq method can be used to compute differential expression on data set with technical replicates (**NOISeq-real**) or without replicates (**NOISeq-sim**). Also NOISeq method can be applied when there are biological replicates (**NOISeq-bio**).   
-  
-In here we will show you how to calculate the differential expression, when there is biological replicates. We will take into account the TimePoint as our factor where it has biological replicates at T2 and T3.   
-
-```r  
-###########################
-## Differential Expression
-###########################
-# lc = 1 RPKM values with length correction
-# lc = 0 no length correction applied
-mynoiseq.bio <- noiseqbio(mydata,
-                          factor = "TimePoint",
-                          norm = "rpkm",
-                          random.seed = 12345,
-                          lc = 1)
-
-head(mynoiseq.bio@results[[1]])
-```  
-
-**noiseqbio** function can be used to calculate differential expression, which have biological replicates.  `norm` is the normalization method to be used, which can be rpkm by default, or uqua (upper quartile), tmm (trimmed mean of M) or n which is no normalization. In here `lc = 1 ` is used to calculate the RPKM values with the length correction.    
-
-This will produce a noiseq object which contains following elements:
-
-```bash
-                              T2_mean    T3_mean      theta      prob     log2FC length
-TRINITY_DN0_c0_g1_i1.p1     14.014433 10.6701081  0.0880846 0.5045883  0.3933386    883
-TRINITY_DN1_c0_g1_i1.p2      9.889114 29.7867351 -0.3592379 0.9703946 -1.5907568    711
-TRINITY_DN1000_c0_g1_i1.p1   1.983390  0.9570247  0.1529210 0.6428457  1.0513405    714
-TRINITY_DN10000_c0_g1_i2.p1 14.294755 19.6743936 -0.1065910 0.7681836 -0.4608333   1050
-TRINITY_DN10001_c0_g1_i1.p2 84.469598  3.6968466  0.9136529 0.9971911  4.5140651    458
-TRINITY_DN10001_c0_g1_i2.p1 43.963212 53.6521530 -0.1153515 0.7883396 -0.2873393   1398
-```   
-
-#### Selecting differentially expressed features  
-
-The next step would be, how to select the differentially expressed features. This can be done using **degenes** function and applying a threshold using the q value. With the argument M, we can choose if we want all the differentially expressed genes (NULL), only the differentially expressed features that are more expressed in condition 1 than in condition 2 (M="up") or only the features which are under expressed in condition 1 with regard to condition 2 (M = "down").  
-
-```r
-mynoiseq.bio.deg = degenes(mynoiseq.bio, q = 0.9 , M= NULL)
-```  
-```
-[1] "47586 differentially expressed features"
-```
-
-```r 
-mynoiseq.bio.deg_up = degenes(mynoiseq.bio, q = 0.9 , M= "up")
-head(mynoiseq.bio.deg_up)
-```  
-```
-[1] "23355 differentially expressed features (up in first condition)"
-                               T2_mean    T3_mean    theta prob    log2FC length
-TRINITY_DN57434_c1_g3_i1.p1 2899.89293 0.08799537 2.785696    1 15.008213    447
-TRINITY_DN58863_c0_g2_i9.p1   24.55380 0.02478509 1.712863    1  9.952258   1587
-TRINITY_DN57127_c0_g1_i1.p1   52.09588 0.08043748 1.713380    1  9.339086    489
-TRINITY_DN50342_c0_g1_i1.p1   53.81552 0.08404686 1.713626    1  9.322613    468
-TRINITY_DN56349_c0_g1_i1.p1   42.69485 0.05853263 1.713635    1  9.510605    672
-TRINITY_DN56871_c1_g1_i3.p2   52.80055 0.08143671 1.714048    1  9.340658    483
-```  
-
-
-```r
-mynoiseq.bio.deg_down = degenes(mynoiseq.bio, q = 0.9 , M= "down")
-head(mynoiseq.bio.deg_down)
-```  
-```
-[1] "24231 differentially expressed features (down in first condition)"
-                                  T2_mean     T3_mean     theta      prob      log2FC length
-TRINITY_DN27469_c0_g1_i1.p1  6.879962e+02 1359.342646 -3.810915 1.0000000  -0.9824367    412
-TRINITY_DN13350_c0_g2_i1.p1  1.207381e-07    4.437976 -3.351256 1.0000000 -25.1315171    327
-TRINITY_DN21734_c1_g1_i5.p1  1.811139e-06   15.734521 -3.223580 1.0000000 -23.0505324    663
-TRINITY_DN20971_c0_g1_i26.p1 3.058669e+02  643.731754 -2.358441 1.0000000  -1.0735556    372
-TRINITY_DN25591_c0_g1_i1.p1  1.680417e-01  132.087619 -1.809176 0.9997979  -9.6184604    384
-TRINITY_DN27792_c0_g1_i23.p1 6.759308e-01   40.725362 -1.798873 0.9987484  -5.9129081    675
-```  
-
-These features can be written into a csv file using the following command.
-```r
-prefix = "T2_T3_noiseq"
-write.csv(mynoiseq.bio.deg_up, file = paste0(csv_out, "/" ,prefix, "_DEgenes_up.csv"))
-write.csv(mynoiseq.bio.deg_down, file = paste0(csv_out, "/", prefix, "_DEgenes_down.csv"))
-``` 
-
-### b. Differentially Expressed Genes using Gfold   
-
-   
-Here we are trying to get differentially expressed genes between two conditions with only a single replicate for each condition. In such situations [Gfold](https://zhanglab.tongji.edu.cn/softwares/GFOLD/index.html) is very useful. Gfold uses a Bayesian model to rank genes according to estimated fold change in expression in across treatments. The Gfold estimate of fold change balances the size of the fold change against its significance, reducing the noise from genes with low read counts. 
- 
-In order to get fold change using Gfold program, you need to provide a count file in a particular format. For the Gfold program the count file should contain 5 columns, where it should contain _GeneSymbol_, _GeneName_, _Read Count_, _Gene exon length_ and _RPKM_. In this input most important columns are _Gene Symbol_ and _Read Count_ information.   
-  
-We will use the kallisto generated _abundance.tsv_ file and reformat it, so it will contain the fields which Gfold program needs as its input. For reformating you can use any programing language that you like. But in here we will be using `awk` to manipulate these columns. AWK is a very powerful language which allows you to get useful information from text files.  
-   
-```awk
-awk '{print $1 "\t" $1 "\t" $4 "\t" $2 "\t" $5 }' ../Counts/K23/abundance.tsv > K23.read_cnt
-awk '{print $1 "\t" $1 "\t" $4 "\t" $2 "\t" $5 }' ../Counts/K32/abundance.tsv > K32.read_cnt
-```  
-
-You can run this command in a interative session or can run the [count2gfoldCounts.sh](/Gfold/count2gfoldCounts.sh) script using shell in a interative session. 
-```bash
-sh count2gfoldCounts.sh
-```  
-
-This will produce counts files which are in Gfold format.  
-```
-Gfold/
-├── K23.read_cnt
-└── K32.read_cnt
-```   
-   
-Gfold program does not take the header row so either you have to delete the first row or comment out the header before you run the program. 
-Now if you look at any of these files it will now contain five columns as follows:
-```
-TRINITY_DN27913_c0_g1_i1.p3	TRINITY_DN27913_c0_g1_i1.p3	3561	13230	12.3338
-TRINITY_DN27054_c1_g6_i1.p1	TRINITY_DN27054_c1_g6_i1.p1	3895.81	11508	15.5417
-TRINITY_DN26839_c0_g2_i1.p1	TRINITY_DN26839_c0_g2_i1.p1	1220.95	10935	5.12987
-TRINITY_DN21012_c2_g1_i3.p1	TRINITY_DN21012_c2_g1_i3.p1	3349	10839	14.1975
-TRINITY_DN17708_c0_g1_i3.p1	TRINITY_DN17708_c0_g1_i3.p1	967	9297	4.79158
-```
-
-### Using Gfold get differentially expressed genes  
-
-Now since we have the counts files in the correct format, we will run the Gfold using the following command. We will be using the K23.read_cnt and K32.read_cnt as input files.
-```bash
-module load gfold/1.1.4
-
-gfold diff -s1 K32 -s2 K23 -suf .read_cnt -o K32_vs_K23.diff
-``` 
-
-Usage information of the gfold:
-```
-gfold diff [options]
-
--s1      sample-1
--s2      sample-2
--o	 output file name
--suf	 input files extention
-
-OPTIONAL FLAGS:
--acc <T/F>	When no replicate is available, whether to use accurate method to calculate GFOLD value. T stands for 	accurate which depends on sequencing depth and slower, F stands for MCMC. Default T. For job diff only.
-
--sc <num>	The significant cutoff for fold change. Default 0.01. For job diff only.
-
--norm <Count/DESeq/NO>  The way to do normalization. 'Count' stands for normalization by total number of mapped reads. 'DESeq' stands for the normalization proposed by DESeq. 'NO' stands for no normalization. You can also specifiy a list of normalization constant separated by commas. E.g. 1.2,2.1,1.0,2.0. Note that the number of constants should be the same as the total number of samples (group1 and group2) and the order should be for -s1 followed by for -s2. GFOLD using normalization constants not by directly multiplication (scaling up) nor division (scaling down). The normalization constants will be built into the model. In the model, division or multiplication has no difference. Default 'DESeq'.
-```
-   
-The complete slurm script is called [gfold.sh](/Gfold/gfold.sh) which is stored in the **Gfold/** directory. Running Gfold will generate the following files, which contains the fold change value between the two conditions.
-```
-Gfold/
-├── K32_vs_K23.diff
-└── K32_vs_K23.diff.ext
-```   
-   
-The Gfold value can be considered a log2-fold change value, where positive/negative value will indicate whether a gene is up/down regulated. The first few lines in the *K32_vs_K23.diff* will be like:  
-
-```
-#GeneSymbol     GeneName        GFOLD(0.01)     E-FDR   log2fdc 1stRPKM 2ndRPKM
-TRINITY_DN27913_c0_g1_i1.p3     TRINITY_DN27913_c0_g1_i1.p3     2.49054 1       2.74244 2.33862 22.549
-TRINITY_DN27054_c1_g6_i1.p1     TRINITY_DN27054_c1_g6_i1.p1     2.53847 1       2.78281 2.8605  28.3545
-TRINITY_DN26839_c0_g2_i1.p1     TRINITY_DN26839_c0_g2_i1.p1     3.81393 1       4.54498 0.263204        9.34665
-TRINITY_DN21012_c2_g1_i3.p1     TRINITY_DN21012_c2_g1_i3.p1     2.4016  1       2.65392 2.8545  25.8846
-TRINITY_DN17708_c0_g1_i3.p1     TRINITY_DN17708_c0_g1_i3.p1     2.27485 1       2.74287 0.890033        8.71362
-```  
-The GFOLD output has 7 coloumns 
-1. **GeneSymbol** Information on gene symbol.
-2. **GeneName** Information on gene name.
-3. **GFOLD** column provides fold change values in log2 format and can be used to obtain a biological meaningful ranking of genes. Any gene that passes the significance cutoff (p-value) of 0.01 and shows 2 or more fold change in expression have values indicated against them.  Genes not satisfying these 2 criterias have value=0 against them. Values are calculated as log2(s2/s1).  The significance cut off can be set by using -sc flag. Since the values are in log2 format, the cut off starts at +1 for upregulated genes and -1 for downregulated genes.  Genes with values greater than +1 (1.2435, 2.4982, 3.53474 etc) have 2 fold increase in expression in s2 samples wheres values less than -1 (-1.6584, -2.0078, -4.6768 etc) will have 2 fold lower or lesser expression in s2 compared to s1.
-4. **E-FDR** column represents the FDR values calculated to correct for multiple testing.  In absence of replicates the value is set to 1 as seen above.  This column will have other values if we have replicates in our study.
-5. **log2fc** column have log2 fold change obtained from s2/s1 for all genes even for those who doesnot pass the significance cut off and have lower or no change in expression between conditions. These values are slightly different from GFOLD because fold change is based on the sampled expression level from the posterior distribution bt taking in account gene lengths.
-6. **1-RPKM** represent RPKM values for genes in s1 sample.
-7. **2-RPKM** represent RPKM values for genes in s2 sample.
-
+The tutorial for this section is not yet written! But please see the extensive R script in `/09_R_analysis`. This script looks at transcript abundances across our taxonomic and functional annotations to identify the impact of contamination in this data set and finally does differential expression analysis with DESeq2 and gene ontology enrichment with goseq. 
 
 
 
